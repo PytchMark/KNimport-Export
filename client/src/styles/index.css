@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: Inter, system-ui, sans-serif;
+  color: #f8fafc;
+  background: radial-gradient(circle at top, #1e293b 0%, #020617 55%);
+}
+
+.glass {
+  @apply bg-white/10 backdrop-blur-xl border border-white/20;
+}
