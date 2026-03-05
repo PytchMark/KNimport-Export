@@ -10,9 +10,16 @@ export default defineConfig({
     emptyOutDir: true
   },
   server: {
-    port: 5173,
+    port: 3000,
+    host: '0.0.0.0',
+    allowedHosts: [
+      'localhost',
+      '.preview.emergentagent.com',
+      '.preview.emergentcf.cloud',
+      '.cluster-0.preview.emergentcf.cloud'
+    ],
     proxy: {
-      '/api': 'http://localhost:8080'
+      '/api': 'http://localhost:8001'
     }
   }
 });

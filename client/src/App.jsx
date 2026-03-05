@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { MessageCircle } from 'lucide-react';
 import Navbar from './components/Navbar';
 import Home from './routes/Home';
 import Reserve from './routes/Reserve';
@@ -12,27 +13,106 @@ import SupplyGuarantee from './routes/SupplyGuarantee';
 import ProofWall from './routes/ProofWall';
 import { AdminDashboard, AdminLogin } from './routes/Admin';
 
-const Protected = ({ children }) => (localStorage.getItem('admin_token') ? children : <Navigate to="/admin" replace />);
+const Protected = ({ children }) => (
+  localStorage.getItem('admin_token') ? children : <Navigate to="/admin" replace />
+);
+
+function Footer() {
+  return (
+    <footer className="border-t border-border bg-background-paper/50 py-12 mt-20">
+      <div className="container mx-auto px-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div className="md:col-span-2">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
+                <span className="font-serif font-bold text-black text-lg">K</span>
+              </div>
+              <div>
+                <span className="font-serif font-semibold text-lg">K&N Import & Export</span>
+              </div>
+            </div>
+            <p className="text-zinc-500 text-sm max-w-sm">
+              Premium Caribbean produce wholesale distribution. Fresh fruits, vegetables, herbs, 
+              and specialty foods for businesses.
+            </p>
+          </div>
+          
+          <div>
+            <h4 className="font-mono text-xs uppercase tracking-wider text-zinc-500 mb-4">Quick Links</h4>
+            <ul className="space-y-2 text-sm text-zinc-400">
+              <li><a href="/availability" className="hover:text-white transition-colors">Availability</a></li>
+              <li><a href="/reserve" className="hover:text-white transition-colors">Reserve Shipment</a></li>
+              <li><a href="/restock" className="hover:text-white transition-colors">Quick Restock</a></li>
+              <li><a href="/quality" className="hover:text-white transition-colors">Quality Control</a></li>
+            </ul>
+          </div>
+          
+          <div>
+            <h4 className="font-mono text-xs uppercase tracking-wider text-zinc-500 mb-4">Contact</h4>
+            <ul className="space-y-2 text-sm text-zinc-400">
+              <li>WhatsApp: +1 (876) 000-0000</li>
+              <li>Email: orders@knimportexport.com</li>
+              <li>Mon-Sat: 8:00 AM - 6:00 PM</li>
+            </ul>
+          </div>
+        </div>
+        
+        <div className="border-t border-border mt-10 pt-6 flex flex-col md:flex-row justify-between items-center gap-4">
+          <p className="text-xs text-zinc-600">
+            © {new Date().getFullYear()} K&N Import & Export. All rights reserved.
+          </p>
+          <div className="flex gap-6 text-xs text-zinc-600">
+            <a href="/quality" className="hover:text-zinc-400">Quality Standards</a>
+            <a href="/supply-guarantee" className="hover:text-zinc-400">Supply Program</a>
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
+}
 
 export default function App() {
   return (
     <BrowserRouter>
-      <Navbar />
-      <a href="https://wa.me/18760000000" className="fixed bottom-4 right-4 z-50 rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 shadow-lg">WhatsApp</a>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/reserve" element={<Reserve />} />
-        <Route path="/restock" element={<Restock />} />
-        <Route path="/availability" element={<Availability />} />
-        <Route path="/how-it-works" element={<HowItWorks />} />
-        <Route path="/quality" element={<Quality />} />
-        <Route path="/supply-guarantee" element={<SupplyGuarantee />} />
-        <Route path="/proof-wall" element={<ProofWall />} />
-        <Route path="/contact" element={<Contact />} />
-        <Route path="/thanks/:referenceId" element={<Thanks />} />
-        <Route path="/admin" element={<AdminLogin />} />
-        <Route path="/admin/dashboard" element={<Protected><AdminDashboard /></Protected>} />
-      </Routes>
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        
+        {/* WhatsApp Floating Button */}
+        <a 
+          href="https://wa.me/18760000000" 
+          target="_blank"
+          rel="noopener noreferrer"
+          className="fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-green-500 hover:bg-green-600 
+                     text-white font-semibold px-5 py-3 rounded-full shadow-lg shadow-green-500/25 
+                     transition-all hover:scale-105 group"
+          data-testid="whatsapp-floating-btn"
+        >
+          <MessageCircle size={22} fill="white" />
+          <span className="hidden sm:inline">WhatsApp</span>
+        </a>
+        
+        <main className="flex-1">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/reserve" element={<Reserve />} />
+            <Route path="/restock" element={<Restock />} />
+            <Route path="/availability" element={<Availability />} />
+            <Route path="/how-it-works" element={<HowItWorks />} />
+            <Route path="/quality" element={<Quality />} />
+            <Route path="/supply-guarantee" element={<SupplyGuarantee />} />
+            <Route path="/proof-wall" element={<ProofWall />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/thanks/:referenceId" element={<Thanks />} />
+            <Route path="/admin" element={<AdminLogin />} />
+            <Route path="/admin/dashboard" element={<Protected><AdminDashboard /></Protected>} />
+          </Routes>
+        </main>
+        
+        <Routes>
+          <Route path="/admin/*" element={null} />
+          <Route path="*" element={<Footer />} />
+        </Routes>
+      </div>
     </BrowserRouter>
   );
 }
