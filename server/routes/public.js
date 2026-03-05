@@ -1,10 +1,22 @@
 import { Router } from 'express';
 import { supabaseAdmin } from '../services/supabase.js';
 import { makeReferenceId } from '../utils/reference.js';
+import { generateSignature } from '../services/cloudinary.js';
 
 const router = Router();
 
 router.get('/health', (_req, res) => res.json({ ok: true }));
+
+// Cloudinary signature for secure uploads
+router.get('/cloudinary/signature', (req, res) => {
+  const { resource_type = 'image', folder = 'kn-media' } = req.query;
+  
+  const allowedFolders = ['kn-media', 'kn-products', 'kn-delivery'];
+  const safeFolder = allowedFolders.includes(folder) ? folder : 'kn-media';
+  
+  const signature = generateSignature(safeFolder, resource_type);
+  res.json(signature);
+});
 
 router.get('/inventory', async (req, res) => {
   let query = supabaseAdmin.from('inventory_items').select('*').eq('is_active', true);
