@@ -7,6 +7,9 @@ import Availability from './routes/Availability';
 import Quality from './routes/Quality';
 import Contact from './routes/Contact';
 import Thanks from './routes/Thanks';
+import HowItWorks from './routes/HowItWorks';
+import SupplyGuarantee from './routes/SupplyGuarantee';
+import ProofWall from './routes/ProofWall';
 import { AdminDashboard, AdminLogin } from './routes/Admin';
 
 const Protected = ({ children }) => (localStorage.getItem('admin_token') ? children : <Navigate to="/admin" replace />);
@@ -15,12 +18,16 @@ export default function App() {
   return (
     <BrowserRouter>
       <Navbar />
+      <a href="https://wa.me/18760000000" className="fixed bottom-4 right-4 z-50 rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 shadow-lg">WhatsApp</a>
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/reserve" element={<Reserve />} />
         <Route path="/restock" element={<Restock />} />
         <Route path="/availability" element={<Availability />} />
+        <Route path="/how-it-works" element={<HowItWorks />} />
         <Route path="/quality" element={<Quality />} />
+        <Route path="/supply-guarantee" element={<SupplyGuarantee />} />
+        <Route path="/proof-wall" element={<ProofWall />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/thanks/:referenceId" element={<Thanks />} />
         <Route path="/admin" element={<AdminLogin />} />

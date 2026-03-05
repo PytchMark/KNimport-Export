@@ -1,6 +1,2 @@
-import { createClient } from '@supabase/supabase-js';
-
-const url = import.meta.env.VITE_SUPABASE_URL;
-const anon = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-export const supabase = url && anon ? createClient(url, anon) : null;
+// Supabase auth client can be re-enabled when package access is available in deployment env.
+export const supabase = null;
