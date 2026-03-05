@@ -13,6 +13,8 @@ import SupplyGuarantee from './routes/SupplyGuarantee';
 import ProofWall from './routes/ProofWall';
 import { AdminDashboard, AdminLogin } from './routes/Admin';
 
+const logoUrl = 'https://res.cloudinary.com/dd8pjjxsm/image/upload/v1772750565/IMG-20260224-WA0029_z9koiq.jpg';
+
 const Protected = ({ children }) => (
   localStorage.getItem('admin_token') ? children : <Navigate to="/admin" replace />
 );
@@ -24,9 +26,11 @@ function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="md:col-span-2">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-                <span className="font-serif font-bold text-black text-lg">K</span>
-              </div>
+              <img
+                src={logoUrl}
+                alt="K&N logo"
+                className="w-10 h-10 rounded-lg object-cover"
+              />
               <div>
                 <span className="font-serif font-semibold text-lg">K&N Import & Export</span>
               </div>
