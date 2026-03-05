@@ -12,6 +12,8 @@ const links = [
   ['Contact', '/contact']
 ];
 
+const logoUrl = 'https://res.cloudinary.com/dd8pjjxsm/image/upload/v1772750565/IMG-20260224-WA0029_z9koiq.jpg';
+
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -37,9 +39,11 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3 group" data-testid="nav-logo">
-            <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-              <span className="font-serif font-bold text-black text-lg">K</span>
-            </div>
+            <img
+              src={logoUrl}
+              alt="K&N logo"
+              className="w-10 h-10 rounded-lg object-cover"
+            />
             <div className="hidden sm:block">
               <span className="font-serif font-semibold text-lg">K&N Import</span>
               <span className="font-mono text-xs text-zinc-500 block tracking-wider">& EXPORT</span>
