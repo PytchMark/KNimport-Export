@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api/client';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { firebaseAuth } from '../lib/firebase';
+import { supabase } from '../lib/supabase';
 
 const statuses = ['new', 'contacted', 'quoted', 'confirmed', 'fulfilled', 'archived'];
 
@@ -11,14 +10,10 @@ export function AdminLogin() {
   const [msg, setMsg] = useState('');
 
   const login = async () => {
-    if (!firebaseAuth) return setMsg('Missing Firebase client env.');
-    try {
-      const creds = await signInWithEmailAndPassword(firebaseAuth, email, password);
-      const token = await creds.user.getIdToken();
-      localStorage.setItem('admin_token', token);
-    } catch (error) {
-      return setMsg(error.message);
-    }
+    if (!supabase) return setMsg('Missing Supabase client env.');
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) return setMsg(error.message);
+    localStorage.setItem('admin_token', data.session.access_token);
     window.location.href = '/admin/dashboard';
   };
 
