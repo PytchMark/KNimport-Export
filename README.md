@@ -2,9 +2,16 @@
 
 Production-ready, mobile-first lead-gen + request management app for Caribbean produce distribution.
 
+## At a glance
+- Public-facing React site with pages for home, quality standards, availability, restock requests, contact, and thank-you flow.
+- Admin React route for managing inventory/media and reviewing incoming wholesale requests.
+- Express API with public/admin routes and Firebase-backed data access.
+- Firestore collections power inventory, media assets, and wholesale requests.
+- Containerized deployment flow targeting Google Cloud Run.
+
 ## Stack
 - **Frontend:** React + Vite + Tailwind + Framer Motion + Lucide
-- **Backend:** Node.js + Express + Supabase
+- **Backend:** Node.js + Express + Firebase (Auth + Firestore)
 - **Media:** Cloudinary URLs (MVP supports URL entry)
 - **Deploy:** Docker + Cloud Run
 
@@ -30,12 +37,8 @@ Production-ready, mobile-first lead-gen + request management app for Caribbean p
     routes/
     middleware/
     services/
-      supabase.js
+      firebase.js
     utils/
-
-  supabase/
-    migrations/
-      001_init.sql
 
   Dockerfile
   .dockerignore
@@ -46,18 +49,20 @@ Production-ready, mobile-first lead-gen + request management app for Caribbean p
 ## Environment Variables
 
 ### Server
-- `SUPABASE_URL`
-- `SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
-- `CLOUDINARY_CLOUD_NAME` (optional)
-- `CLOUDINARY_API_KEY` (optional)
-- `CLOUDINARY_API_SECRET` (optional)
+- `FIREBASE_PROJECT_ID`
+- `FIREBASE_SERVICE_ACCOUNT_KEY` (optional JSON string for local/dev; Cloud Run should prefer service-account ADC/Workload Identity)
 - `ADMIN_EMAIL_ALLOWLIST` (optional comma-separated)
 - `PORT` (Cloud Run provides this)
 
+> Cloud Run startup tip: the app can boot without Firebase config, but Firebase-backed endpoints require either Workload Identity + a service account with Firestore/Auth access, or `FIREBASE_SERVICE_ACCOUNT_KEY`.
+
 ### Client (Vite)
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_ANON_KEY`
+- `VITE_FIREBASE_API_KEY`
+- `VITE_FIREBASE_AUTH_DOMAIN`
+- `VITE_FIREBASE_PROJECT_ID`
+- `VITE_FIREBASE_STORAGE_BUCKET`
+- `VITE_FIREBASE_MESSAGING_SENDER_ID`
+- `VITE_FIREBASE_APP_ID`
 
 ## Scripts
 - `npm install`
@@ -65,10 +70,17 @@ Production-ready, mobile-first lead-gen + request management app for Caribbean p
 - `npm run build` — builds Vite app
 - `npm start` — serves API + built frontend from Express
 
-## Supabase setup
-1. Run migration in `supabase/migrations/001_init.sql`.
-2. Create admin users via Supabase Auth.
+## Firebase setup
+1. Create a Firebase project with Authentication + Firestore enabled.
+2. Create admin users in Firebase Authentication.
 3. Optionally set `ADMIN_EMAIL_ALLOWLIST` for admin API gating.
+4. Create Firestore collections: `inventory_items`, `media_assets`, `requests`.
+
+
+## Firestore starter collections
+- `inventory_items`: public catalog entries (`is_active`, `status`, product metadata).
+- `media_assets`: home-page media wall assets (`type`, `url`, `tag`, `featured`).
+- `requests`: wholesale submissions including `request_items` array and pipeline `status`.
 
 ## Seed SQL (12 inventory + 12 media)
 ```sql
@@ -112,5 +124,9 @@ docker run -p 8080:8080 --env-file .env knimport-export
 Or with Cloud Build:
 ```bash
 gcloud builds submit --config cloudbuild.yaml
-gcloud run deploy knimport-export --image gcr.io/PROJECT_ID/knimport-export:COMMIT_SHA --region us-central1 --allow-unauthenticated
+gcloud run deploy knimport-export \
+  --image gcr.io/PROJECT_ID/knimport-export:COMMIT_SHA \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --set-env-vars FIREBASE_PROJECT_ID=YOUR_FIREBASE_PROJECT_ID
 ```
