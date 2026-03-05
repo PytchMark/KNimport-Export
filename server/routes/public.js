@@ -1,24 +1,35 @@
 import { Router } from 'express';
-import { supabaseAdmin } from '../services/supabase.js';
+import { getSupabaseAdmin } from '../services/supabase.js';
 import { makeReferenceId } from '../utils/reference.js';
 import { generateSignature } from '../services/cloudinary.js';
 
 const router = Router();
 
+function getAdminClientOrRespond(res) {
+  const supabaseAdmin = getSupabaseAdmin();
+  if (!supabaseAdmin) {
+    res.status(500).json({ error: 'Server is missing Supabase configuration' });
+    return null;
+  }
+
+  return supabaseAdmin;
+}
+
 router.get('/health', (_req, res) => res.json({ ok: true }));
 
-// Cloudinary signature for secure uploads
 router.get('/cloudinary/signature', (req, res) => {
   const { resource_type = 'image', folder = 'kn-media' } = req.query;
-  
   const allowedFolders = ['kn-media', 'kn-products', 'kn-delivery'];
   const safeFolder = allowedFolders.includes(folder) ? folder : 'kn-media';
-  
+
   const signature = generateSignature(safeFolder, resource_type);
   res.json(signature);
 });
 
 router.get('/inventory', async (req, res) => {
+  const supabaseAdmin = getAdminClientOrRespond(res);
+  if (!supabaseAdmin) return;
+
   let query = supabaseAdmin.from('inventory_items').select('*').eq('is_active', true);
   if (req.query.status) query = query.eq('status', req.query.status);
   const { data, error } = await query.order('created_at', { ascending: false });
@@ -27,12 +38,18 @@ router.get('/inventory', async (req, res) => {
 });
 
 router.get('/media', async (_req, res) => {
+  const supabaseAdmin = getAdminClientOrRespond(res);
+  if (!supabaseAdmin) return;
+
   const { data, error } = await supabaseAdmin.from('media_assets').select('*').order('created_at', { ascending: false });
   if (error) return res.status(400).json({ error: error.message });
   res.json({ assets: data });
 });
 
 router.post('/requests', async (req, res) => {
+  const supabaseAdmin = getAdminClientOrRespond(res);
+  if (!supabaseAdmin) return;
+
   const body = req.body;
   const reference_id = makeReferenceId();
   const payload = {
