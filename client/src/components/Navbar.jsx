@@ -8,6 +8,7 @@ const links = [
   ['Reserve', '/reserve'],
   ['Quick Restock', '/restock'],
   ['Quality', '/quality'],
+  ['K&N Products', '/products'],
   ['Proof Wall', '/proof-wall'],
   ['Contact', '/contact']
 ];

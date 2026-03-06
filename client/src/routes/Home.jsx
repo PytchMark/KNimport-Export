@@ -52,16 +52,16 @@ export default function Home() {
               transition={{ duration: 0.8 }}
             >
               <span className="font-mono text-xs uppercase tracking-[0.3em] text-primary">
-                Premium Caribbean Wholesale
+                Premium Caribbean <span className="text-secondary">Wholesale</span>
               </span>
               <h1 className="text-5xl md:text-7xl font-bold tracking-tight leading-[1.1]">
-                Fresh Caribbean
+                Fresh <span className="text-secondary">Caribbean</span>
                 <span className="block text-primary">Produce.</span>
-                <span className="block text-zinc-400 text-4xl md:text-5xl mt-2">Quality Controlled. Wholesale Ready.</span>
+                <span className="block text-zinc-400 text-4xl md:text-5xl mt-2"><span className="text-secondary">Quality Controlled.</span> Wholesale Ready.</span>
               </h1>
               <p className="text-lg text-zinc-400 max-w-xl leading-relaxed">
                 Reliable shipments of authentic Caribbean fruits, vegetables, herbs, and specialty foods — 
-                sourced with strict Quality Control Management.
+                sourced with strict <span className="text-secondary">Quality Control Management</span>.
               </p>
               <div className="flex flex-wrap gap-4 pt-4">
                 <Link to="/reserve" className="btn-primary inline-flex items-center gap-3" data-testid="hero-reserve-btn">
@@ -125,7 +125,7 @@ export default function Home() {
             viewport={{ once: true }}
           >
             <span className="font-mono text-xs uppercase tracking-[0.3em] text-primary">Our Track Record</span>
-            <h2 className="text-4xl md:text-5xl font-semibold mt-4">Proof of Supply. Proof of Quality.</h2>
+            <h2 className="text-4xl md:text-5xl font-semibold mt-4">Proof of <span className="text-secondary">Supply</span>. Proof of <span className="text-secondary">Quality</span>.</h2>
           </motion.div>
           
           <MotionWall assets={media} />
@@ -248,10 +248,10 @@ export default function Home() {
               viewport={{ once: true }}
             >
               <span className="font-mono text-xs uppercase tracking-[0.3em] text-primary">Partnership</span>
-              <h2 className="text-4xl md:text-5xl font-semibold mt-4">Never Run Out of Stock Again</h2>
+              <h2 className="text-4xl md:text-5xl font-semibold mt-4">Never Run Out of <span className="text-secondary">Stock</span> Again</h2>
               <p className="text-zinc-400 mt-6 leading-relaxed">
                 Businesses that reserve produce before shipment arrival receive priority allocation, 
-                lower rates, and guaranteed sourcing. Join our Supply Guarantee Program.
+                lower rates, and guaranteed sourcing. Join our <span className="text-secondary">Supply Guarantee Program</span>.
               </p>
               <ul className="mt-8 space-y-4">
                 {[
