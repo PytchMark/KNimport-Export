@@ -13,6 +13,7 @@ export const api = {
   health: () => request('/health'),
   inventory: (status) => request(`/inventory${status ? `?status=${status}` : ''}`),
   media: () => request('/media'),
+  gallery: (tags = []) => request(`/gallery${tags.length ? `?tags=${encodeURIComponent(tags.join(','))}` : ''}`),
   createRequest: (payload) => request('/requests', { method: 'POST', body: JSON.stringify(payload) }),
   adminRequests: (token) => request('/admin/requests', { headers: { Authorization: `Bearer ${token}` } }),
   updateRequest: (id, payload, token) => request(`/admin/requests/${id}`, { method: 'PATCH', body: JSON.stringify(payload), headers: { Authorization: `Bearer ${token}` } }),

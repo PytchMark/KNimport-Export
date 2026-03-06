@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { getSupabaseAdmin } from '../services/supabase.js';
 import { makeReferenceId } from '../utils/reference.js';
 import { generateSignature } from '../services/cloudinary.js';
+import cloudinary from '../services/cloudinary.js';
 
 const router = Router();
 
@@ -24,6 +25,42 @@ router.get('/cloudinary/signature', (req, res) => {
 
   const signature = generateSignature(safeFolder, resource_type);
   res.json(signature);
+});
+
+
+router.get('/gallery', async (req, res) => {
+  try {
+    const requestedTags = String(req.query.tags || '')
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean);
+
+    const expressionParts = ['resource_type:image', 'folder:KNIMPORTexport'];
+    if (requestedTags.length) {
+      expressionParts.push(`(${requestedTags.map((tag) => `tags:${tag}`).join(' OR ')})`);
+    }
+
+    const result = await cloudinary.search
+      .expression(expressionParts.join(' AND '))
+      .sort_by('created_at', 'desc')
+      .max_results(80)
+      .execute();
+
+    const assets = (result.resources || []).map((resource) => ({
+      id: resource.asset_id || resource.public_id,
+      url: resource.secure_url,
+      type: resource.resource_type === 'video' ? 'video' : 'image',
+      tag: resource.tags?.[0] || 'gallery',
+      tags: resource.tags || [],
+      public_id: resource.public_id,
+      width: resource.width,
+      height: resource.height
+    }));
+
+    res.json({ assets });
+  } catch (error) {
+    res.status(500).json({ error: error.message || 'Failed to fetch gallery assets' });
+  }
 });
 
 router.get('/inventory', async (req, res) => {
