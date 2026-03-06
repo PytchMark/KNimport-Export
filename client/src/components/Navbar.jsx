@@ -9,6 +9,7 @@ const links = [
   ['Quick Restock', '/restock'],
   ['Quality', '/quality'],
   ['K&N Products', '/products'],
+  ['Farmers', '/farmers'],
   ['Proof Wall', '/proof-wall'],
   ['Contact', '/contact']
 ];

@@ -3,8 +3,8 @@ import { Phone, Mail, Clock, MapPin, MessageCircle, ArrowRight } from 'lucide-re
 import { Link } from 'react-router-dom';
 
 const contactMethods = [
-  { icon: MessageCircle, label: 'WhatsApp', value: '+1 (876) 000-0000', href: 'https://wa.me/18760000000', color: 'text-green-500' },
-  { icon: Phone, label: 'Phone', value: '+1 (876) 000-0000', href: 'tel:+18760000000', color: 'text-blue-500' },
+  { icon: MessageCircle, label: 'WhatsApp', value: '+1 (772) 800-9570', href: 'https://wa.me/17728009570', color: 'text-green-500' },
+  { icon: Phone, label: 'Phone', value: '+1 (772) 800-9570', href: 'tel:+17728009570', color: 'text-blue-500' },
   { icon: Mail, label: 'Email', value: 'orders@knimportexport.com', href: 'mailto:orders@knimportexport.com', color: 'text-primary' }
 ];
 

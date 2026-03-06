@@ -336,9 +336,12 @@ export default function Home() {
               <Link to="/restock" className="btn-secondary inline-flex items-center gap-3">
                 Quick Restock
               </Link>
-              <a href="https://wa.me/18760000000" className="btn-secondary inline-flex items-center gap-3">
+              <a href="https://wa.me/17728009570" className="btn-secondary inline-flex items-center gap-3">
                 <Phone size={18} /> WhatsApp
               </a>
+              <Link to="/farmers" className="btn-secondary inline-flex items-center gap-3">
+                Become a Vetted Supplier
+              </Link>
             </div>
           </motion.div>
         </div>

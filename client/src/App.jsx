@@ -13,6 +13,7 @@ import HowItWorks from './routes/HowItWorks';
 import SupplyGuarantee from './routes/SupplyGuarantee';
 import ProofWall from './routes/ProofWall';
 import Products from './routes/Products';
+import Farmers from './routes/Farmers';
 import { AdminDashboard, AdminLogin } from './routes/Admin';
 
 const logoUrl = 'https://res.cloudinary.com/dd8pjjxsm/image/upload/v1772750565/IMG-20260224-WA0029_z9koiq.jpg';
@@ -51,13 +52,14 @@ function Footer() {
               <li><a href="/restock" className="hover:text-white transition-colors">Quick Restock</a></li>
               <li><a href="/quality" className="hover:text-white transition-colors">Quality Control</a></li>
               <li><a href="/products" className="hover:text-white transition-colors">K&N Products</a></li>
+              <li><a href="/farmers" className="hover:text-white transition-colors">Farmers Sign Up</a></li>
             </ul>
           </div>
           
           <div>
             <h4 className="font-mono text-xs uppercase tracking-wider text-zinc-500 mb-4">Contact</h4>
             <ul className="space-y-2 text-sm text-zinc-400">
-              <li>WhatsApp: +1 (876) 000-0000</li>
+              <li>WhatsApp: +1 (772) 800-9570</li>
               <li>Email: orders@knimportexport.com</li>
               <li>Mon-Sat: 8:00 AM - 6:00 PM</li>
             </ul>
@@ -99,7 +101,7 @@ export default function App() {
         
         {/* WhatsApp Floating Button */}
         <a 
-          href="https://wa.me/18760000000" 
+          href="https://wa.me/17728009570" 
           target="_blank"
           rel="noopener noreferrer"
           className="fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-green-500 hover:bg-green-600 
@@ -122,6 +124,7 @@ export default function App() {
             <Route path="/supply-guarantee" element={<SupplyGuarantee />} />
             <Route path="/proof-wall" element={<ProofWall />} />
             <Route path="/products" element={<Products />} />
+            <Route path="/farmers" element={<Farmers />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/thanks/:referenceId" element={<Thanks />} />
             <Route path="/admin" element={<AdminLogin />} />

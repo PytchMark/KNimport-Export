@@ -261,7 +261,7 @@ export default function StepForm({ type = 'reserve', initialItems = [] }) {
                   <label className="input-label">Phone / WhatsApp *</label>
                   <input 
                     className="input" 
-                    placeholder="+1 (876) 000-0000"
+                    placeholder="+1 (772) 800-9570"
                     value={form.phone_whatsapp}
                     onChange={(e) => update('phone_whatsapp', e.target.value)}
                     data-testid="input-phone"
