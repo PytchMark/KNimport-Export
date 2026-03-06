@@ -49,14 +49,14 @@ export default function Thanks() {
           >
             <p className="text-zinc-500 text-sm mb-4">Want faster confirmation?</p>
             <a 
-              href={`https://wa.me/18760000000?text=${whatsappMsg}`}
+              href={`https://wa.me/17728009570?text=${whatsappMsg}`}
               className="btn-secondary w-full flex items-center justify-center gap-3"
               data-testid="whatsapp-followup-btn"
             >
               <MessageCircle size={20} /> Send WhatsApp with Reference
             </a>
             <a 
-              href="tel:+18760000000"
+              href="tel:+17728009570"
               className="btn-ghost w-full flex items-center justify-center gap-3"
             >
               <Phone size={18} /> Call Us Directly

@@ -43,7 +43,7 @@ export default function SupplyGuarantee() {
           animate={{ opacity: 1, y: 0 }}
         >
           <span className="font-mono text-xs uppercase tracking-[0.3em] text-secondary">Partnership Program</span>
-          <h1 className="text-4xl md:text-6xl font-bold mt-4">Supply Guarantee Program</h1>
+          <h1 className="text-4xl md:text-6xl font-bold mt-4">Supply <span className="text-secondary">Guarantee</span> Program</h1>
           <p className="text-zinc-400 mt-6 text-lg leading-relaxed">
             Never run out of stock again. Reserve before shipment arrival and operate with predictable 
             inventory confidence. Built for businesses that plan ahead.
@@ -81,7 +81,7 @@ export default function SupplyGuarantee() {
             <div>
               <h2 className="text-3xl md:text-4xl font-semibold font-serif mb-6">How to Join</h2>
               <p className="text-zinc-400 leading-relaxed mb-8">
-                Joining the Supply Guarantee Program is simple. Start by submitting a reserve request 
+                Joining the Supply <span className="text-secondary">Guarantee Program</span> is simple. Start by submitting a reserve request 
                 and indicate your interest in recurring orders. Our team will reach out to discuss 
                 your needs and set up your allocation schedule.
               </p>
