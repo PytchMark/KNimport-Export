@@ -1,8 +1,7 @@
 import { Router } from 'express';
 import { getSupabaseAdmin } from '../services/supabase.js';
 import { makeReferenceId } from '../utils/reference.js';
-import { generateSignature } from '../services/cloudinary.js';
-import cloudinary from '../services/cloudinary.js';
+import { MEDIA_CATEGORIES } from '../services/storage.js';
 
 const router = Router();
 
@@ -18,48 +17,57 @@ function getAdminClientOrRespond(res) {
 
 router.get('/health', (_req, res) => res.json({ ok: true }));
 
-router.get('/cloudinary/signature', (req, res) => {
-  const { resource_type = 'image', folder = 'kn-media' } = req.query;
-  const allowedFolders = ['kn-media', 'kn-products', 'kn-delivery'];
-  const safeFolder = allowedFolders.includes(folder) ? folder : 'kn-media';
-
-  const signature = generateSignature(safeFolder, resource_type);
-  res.json(signature);
-});
-
-
+// Get gallery assets from Supabase media_assets table
 router.get('/gallery', async (req, res) => {
+  const supabaseAdmin = getAdminClientOrRespond(res);
+  if (!supabaseAdmin) return;
+
   try {
     const requestedTags = String(req.query.tags || '')
       .split(',')
       .map((value) => value.trim())
       .filter(Boolean);
 
-    const expressionParts = ['resource_type:image', 'folder:KNIMPORTexport'];
+    let query = supabaseAdmin.from('media_assets').select('*').order('created_at', { ascending: false });
+    
     if (requestedTags.length) {
-      expressionParts.push(`(${requestedTags.map((tag) => `tags:${tag}`).join(' OR ')})`);
+      query = query.in('tag', requestedTags);
     }
 
-    const result = await cloudinary.search
-      .expression(expressionParts.join(' AND '))
-      .sort_by('created_at', 'desc')
-      .max_results(80)
-      .execute();
+    const { data, error } = await query.limit(80);
+    if (error) throw error;
 
-    const assets = (result.resources || []).map((resource) => ({
-      id: resource.asset_id || resource.public_id,
-      url: resource.secure_url,
-      type: resource.resource_type === 'video' ? 'video' : 'image',
-      tag: resource.tags?.[0] || 'gallery',
-      tags: resource.tags || [],
-      public_id: resource.public_id,
-      width: resource.width,
-      height: resource.height
+    const assets = (data || []).map((asset) => ({
+      id: asset.id,
+      url: asset.url,
+      type: asset.type || 'image',
+      tag: asset.tag || 'gallery',
+      category: asset.category || 'gallery',
+      storage_path: asset.storage_path
     }));
 
     res.json({ assets });
   } catch (error) {
     res.status(500).json({ error: error.message || 'Failed to fetch gallery assets' });
+  }
+});
+
+// Get hero images specifically
+router.get('/hero-images', async (_req, res) => {
+  const supabaseAdmin = getAdminClientOrRespond(res);
+  if (!supabaseAdmin) return;
+
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('media_assets')
+      .select('*')
+      .eq('category', 'hero')
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    res.json({ images: data || [] });
+  } catch (error) {
+    res.status(500).json({ error: error.message || 'Failed to fetch hero images' });
   }
 });
 

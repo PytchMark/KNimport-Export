@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 import { 
   LayoutDashboard, Package, Users, Image, Settings, LogOut,
   ChevronRight, Plus, Search, Filter, Upload, Trash2, X,
-  Clock, Phone, Mail, Building, Loader2
+  Clock, Phone, Mail, Building, Loader2, UserPlus, Edit2, Eye, EyeOff
 } from 'lucide-react';
 
 const statuses = ['new', 'contacted', 'quoted', 'confirmed', 'fulfilled', 'archived'];
@@ -18,6 +18,16 @@ const statusColors = {
   archived: 'bg-zinc-500/10 text-zinc-500 border-zinc-500/20'
 };
 
+const mediaCategories = [
+  { value: 'hero', label: 'Hero Images', desc: 'Homepage slideshow' },
+  { value: 'inventory', label: 'Inventory', desc: 'Product images' },
+  { value: 'delivery', label: 'Delivery', desc: 'Delivery proof shots' },
+  { value: 'quality', label: 'Quality', desc: 'QC inspection photos' },
+  { value: 'gallery', label: 'Gallery', desc: 'General gallery' }
+];
+
+const mediaTags = ['fresh_closeup', 'delivery', 'shelf_stock', 'container_day', 'gallery'];
+
 const sidebarItems = [
   { icon: LayoutDashboard, label: 'Dashboard', key: 'dashboard' },
   { icon: Package, label: 'Requests', key: 'requests' },
@@ -26,25 +36,66 @@ const sidebarItems = [
 ];
 
 export function AdminLogin() {
+  const [mode, setMode] = useState('login'); // 'login' or 'signup'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [msg, setMsg] = useState('');
+  const [msg, setMsg] = useState({ type: '', text: '' });
 
   const login = async () => {
-    if (!supabase) return setMsg('Supabase not configured');
+    if (!supabase) return setMsg({ type: 'error', text: 'Supabase not configured' });
     setLoading(true);
-    setMsg('');
+    setMsg({ type: '', text: '' });
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       localStorage.setItem('admin_token', data.session.access_token);
       window.location.href = '/admin/dashboard';
     } catch (err) {
-      setMsg(err.message || 'Login failed');
+      setMsg({ type: 'error', text: err.message || 'Login failed' });
     } finally {
       setLoading(false);
     }
+  };
+
+  const signup = async () => {
+    if (!supabase) return setMsg({ type: 'error', text: 'Supabase not configured' });
+    if (password !== confirmPassword) {
+      return setMsg({ type: 'error', text: 'Passwords do not match' });
+    }
+    if (password.length < 6) {
+      return setMsg({ type: 'error', text: 'Password must be at least 6 characters' });
+    }
+    setLoading(true);
+    setMsg({ type: '', text: '' });
+    try {
+      const { data, error } = await supabase.auth.signUp({ 
+        email, 
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/admin/dashboard`
+        }
+      });
+      if (error) throw error;
+      
+      if (data.user && !data.session) {
+        setMsg({ type: 'success', text: 'Check your email to confirm your account!' });
+      } else if (data.session) {
+        localStorage.setItem('admin_token', data.session.access_token);
+        window.location.href = '/admin/dashboard';
+      }
+    } catch (err) {
+      setMsg({ type: 'error', text: err.message || 'Signup failed' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    mode === 'login' ? login() : signup();
   };
 
   return (
@@ -58,11 +109,13 @@ export function AdminLogin() {
           <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center mx-auto mb-4">
             <span className="font-serif font-bold text-black text-2xl">K</span>
           </div>
-          <h1 className="text-2xl font-bold">Admin Login</h1>
-          <p className="text-zinc-500 text-sm mt-2">Sign in to access the dashboard</p>
+          <h1 className="text-2xl font-bold">{mode === 'login' ? 'Admin Login' : 'Create Admin Account'}</h1>
+          <p className="text-zinc-500 text-sm mt-2">
+            {mode === 'login' ? 'Sign in to access the dashboard' : 'Create your admin account to get started'}
+          </p>
         </div>
 
-        <div className="glass-strong rounded-2xl p-8 space-y-5">
+        <form onSubmit={handleSubmit} className="glass-strong rounded-2xl p-8 space-y-5">
           <div>
             <label className="input-label">Email</label>
             <input 
@@ -71,35 +124,88 @@ export function AdminLogin() {
               placeholder="admin@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              required
               data-testid="admin-email-input"
             />
           </div>
           <div>
             <label className="input-label">Password</label>
-            <input 
-              type="password" 
-              className="input" 
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && login()}
-              data-testid="admin-password-input"
-            />
+            <div className="relative">
+              <input 
+                type={showPassword ? 'text' : 'password'}
+                className="input pr-12" 
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={6}
+                data-testid="admin-password-input"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           </div>
           
-          {msg && (
-            <p className="text-sm text-red-400 bg-red-500/10 rounded-lg px-4 py-2">{msg}</p>
+          {mode === 'signup' && (
+            <div>
+              <label className="input-label">Confirm Password</label>
+              <input 
+                type={showPassword ? 'text' : 'password'}
+                className="input" 
+                placeholder="••••••••"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                minLength={6}
+                data-testid="admin-confirm-password-input"
+              />
+            </div>
+          )}
+          
+          {msg.text && (
+            <p className={`text-sm rounded-lg px-4 py-2 ${
+              msg.type === 'error' ? 'text-red-400 bg-red-500/10' : 'text-green-400 bg-green-500/10'
+            }`}>
+              {msg.text}
+            </p>
           )}
           
           <button 
+            type="submit"
             className="btn-primary w-full flex items-center justify-center gap-2"
-            onClick={login}
             disabled={loading}
-            data-testid="admin-login-btn"
+            data-testid={mode === 'login' ? 'admin-login-btn' : 'admin-signup-btn'}
           >
-            {loading ? <Loader2 className="animate-spin" size={18} /> : 'Sign In'}
+            {loading ? (
+              <Loader2 className="animate-spin" size={18} />
+            ) : mode === 'login' ? (
+              'Sign In'
+            ) : (
+              <>
+                <UserPlus size={18} /> Create Account
+              </>
+            )}
           </button>
-        </div>
+
+          <div className="text-center pt-2">
+            <button
+              type="button"
+              onClick={() => {
+                setMode(mode === 'login' ? 'signup' : 'login');
+                setMsg({ type: '', text: '' });
+              }}
+              className="text-sm text-zinc-400 hover:text-primary transition-colors"
+              data-testid="toggle-auth-mode"
+            >
+              {mode === 'login' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
+            </button>
+          </div>
+        </form>
       </motion.div>
     </div>
   );
@@ -116,8 +222,11 @@ export function AdminDashboard() {
   // Inventory form
   const [newItem, setNewItem] = useState({ name: '', status: 'available_now', unit_label: 'per box', quality_note: '' });
   
-  // Media upload
+  // Media upload state
   const [uploading, setUploading] = useState(false);
+  const [uploadCategory, setUploadCategory] = useState('gallery');
+  const [uploadTag, setUploadTag] = useState('gallery');
+  const [mediaFilter, setMediaFilter] = useState('all');
   
   const token = localStorage.getItem('admin_token');
 
@@ -126,7 +235,7 @@ export function AdminDashboard() {
     try {
       const [reqData, invData, mediaData] = await Promise.all([
         api.adminRequests(token),
-        api.inventory(),
+        api.adminInventory(token),
         api.media()
       ]);
       setRequests(reqData.requests || []);
@@ -151,6 +260,11 @@ export function AdminDashboard() {
     fulfilled: requests.filter((r) => r.status === 'fulfilled').length
   }), [requests]);
 
+  const filteredMedia = useMemo(() => {
+    if (mediaFilter === 'all') return media;
+    return media.filter((m) => m.category === mediaFilter);
+  }, [media, mediaFilter]);
+
   const updateRequestStatus = async (id, newStatus) => {
     await api.updateRequest(id, { status: newStatus }, token);
     loadData();
@@ -164,46 +278,49 @@ export function AdminDashboard() {
   };
 
   const handleMediaUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files?.length) return;
     
     setUploading(true);
     try {
-      // Get signature from backend
-      const sigRes = await fetch(`/api/cloudinary/signature?resource_type=image`);
-      const sig = await sigRes.json();
-      
-      // Upload to Cloudinary
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('api_key', sig.api_key);
-      formData.append('timestamp', sig.timestamp);
-      formData.append('signature', sig.signature);
-      formData.append('folder', sig.folder);
-      
-      const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${sig.cloud_name}/image/upload`, {
-        method: 'POST',
-        body: formData
-      });
-      const uploadData = await uploadRes.json();
-      
-      if (uploadData.secure_url) {
-        await api.createMedia({ 
-          url: uploadData.secure_url, 
-          type: 'image', 
-          tag: 'fresh_closeup' 
-        }, token);
-        loadData();
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('category', uploadCategory);
+        formData.append('tag', uploadTag);
+        
+        const response = await fetch('/api/admin/media/upload', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          body: formData
+        });
+        
+        if (!response.ok) {
+          const err = await response.json();
+          throw new Error(err.error || 'Upload failed');
+        }
       }
+      loadData();
     } catch (err) {
       console.error('Upload failed:', err);
+      alert('Upload failed: ' + err.message);
     } finally {
       setUploading(false);
+      e.target.value = ''; // Reset file input
     }
   };
 
   const deleteMediaItem = async (id) => {
+    if (!confirm('Are you sure you want to delete this media?')) return;
     await api.deleteMedia(id, token);
+    loadData();
+  };
+
+  const deleteInventoryItem = async (id) => {
+    if (!confirm('Are you sure you want to remove this item?')) return;
+    await api.deleteInventory(id, token);
     loadData();
   };
 
@@ -251,6 +368,7 @@ export function AdminDashboard() {
             <button
               onClick={logout}
               className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-zinc-400 hover:bg-white/5 hover:text-white transition-colors"
+              data-testid="logout-btn"
             >
               <LogOut size={20} />
               Logout
@@ -290,6 +408,22 @@ export function AdminDashboard() {
                     ))}
                   </div>
 
+                  {/* Quick Stats */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="glass-strong rounded-2xl p-5">
+                      <p className="text-sm text-zinc-400">Total Inventory Items</p>
+                      <p className="text-3xl font-bold mt-1 text-primary">{inventory.length}</p>
+                    </div>
+                    <div className="glass-strong rounded-2xl p-5">
+                      <p className="text-sm text-zinc-400">Media Assets</p>
+                      <p className="text-3xl font-bold mt-1 text-secondary">{media.length}</p>
+                    </div>
+                    <div className="glass-strong rounded-2xl p-5">
+                      <p className="text-sm text-zinc-400">Hero Images</p>
+                      <p className="text-3xl font-bold mt-1 text-yellow-500">{media.filter(m => m.category === 'hero').length}</p>
+                    </div>
+                  </div>
+
                   {/* Recent Requests */}
                   <div className="glass-strong rounded-2xl overflow-hidden">
                     <div className="p-6 border-b border-white/5">
@@ -309,6 +443,9 @@ export function AdminDashboard() {
                           </div>
                         </div>
                       ))}
+                      {requests.length === 0 && (
+                        <div className="p-6 text-center text-zinc-500">No requests yet</div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -366,9 +503,9 @@ export function AdminDashboard() {
                   {/* Add Item Form */}
                   <div className="glass-strong rounded-2xl p-6">
                     <h3 className="font-semibold mb-4">Add New Item</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                       <input
-                        className="input"
+                        className="input md:col-span-2"
                         placeholder="Item name"
                         value={newItem.name}
                         onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
@@ -378,6 +515,7 @@ export function AdminDashboard() {
                         className="input"
                         value={newItem.status}
                         onChange={(e) => setNewItem({ ...newItem, status: e.target.value })}
+                        data-testid="inventory-status-select"
                       >
                         <option value="available_now">Available Now</option>
                         <option value="next_container">Next Container</option>
@@ -385,7 +523,7 @@ export function AdminDashboard() {
                       </select>
                       <input
                         className="input"
-                        placeholder="Unit label (e.g., per box)"
+                        placeholder="Unit (e.g., per box)"
                         value={newItem.unit_label}
                         onChange={(e) => setNewItem({ ...newItem, unit_label: e.target.value })}
                       />
@@ -394,7 +532,7 @@ export function AdminDashboard() {
                         className="btn-primary flex items-center justify-center gap-2"
                         data-testid="add-inventory-btn"
                       >
-                        <Plus size={18} /> Add Item
+                        <Plus size={18} /> Add
                       </button>
                     </div>
                   </div>
@@ -415,15 +553,26 @@ export function AdminDashboard() {
                             item.status === 'available_now' ? 'badge-available' :
                             item.status === 'next_container' ? 'badge-coming' : 'badge-limited'
                           }>
-                            {item.status.replace('_', ' ')}
+                            {item.status?.replace('_', ' ') || 'unknown'}
                           </span>
                         </div>
                         <div className="col-span-3 text-zinc-400">{item.unit_label || '—'}</div>
-                        <div className="col-span-2">
-                          <button className="text-zinc-500 hover:text-white">Edit</button>
+                        <div className="col-span-2 flex gap-2">
+                          <button 
+                            onClick={() => deleteInventoryItem(item.id)}
+                            className="text-red-400 hover:text-red-300 p-1"
+                            data-testid={`delete-inventory-${item.id}`}
+                          >
+                            <Trash2 size={16} />
+                          </button>
                         </div>
                       </div>
                     ))}
+                    {inventory.length === 0 && (
+                      <div className="px-6 py-12 text-center text-zinc-500">
+                        No inventory items yet. Add your first item above.
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -431,39 +580,134 @@ export function AdminDashboard() {
               {/* Media Tab */}
               {activeTab === 'media' && (
                 <div className="space-y-8">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between flex-wrap gap-4">
                     <div>
                       <h1 className="text-3xl font-bold">Media Gallery</h1>
-                      <p className="text-zinc-500 mt-1">Manage proof wall images</p>
+                      <p className="text-zinc-500 mt-1">Manage images stored in Supabase</p>
                     </div>
-                    <label className="btn-primary cursor-pointer inline-flex items-center gap-2">
-                      {uploading ? <Loader2 className="animate-spin" size={18} /> : <Upload size={18} />}
-                      Upload Image
-                      <input type="file" className="hidden" accept="image/*" onChange={handleMediaUpload} disabled={uploading} />
-                    </label>
+                  </div>
+
+                  {/* Upload Section */}
+                  <div className="glass-strong rounded-2xl p-6">
+                    <h3 className="font-semibold mb-4">Upload Media to Supabase Storage</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                      <div>
+                        <label className="input-label">Category</label>
+                        <select
+                          className="input"
+                          value={uploadCategory}
+                          onChange={(e) => setUploadCategory(e.target.value)}
+                          data-testid="upload-category-select"
+                        >
+                          {mediaCategories.map((cat) => (
+                            <option key={cat.value} value={cat.value}>
+                              {cat.label} - {cat.desc}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="input-label">Tag</label>
+                        <select
+                          className="input"
+                          value={uploadTag}
+                          onChange={(e) => setUploadTag(e.target.value)}
+                          data-testid="upload-tag-select"
+                        >
+                          {mediaTags.map((tag) => (
+                            <option key={tag} value={tag}>{tag.replace('_', ' ')}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="btn-primary cursor-pointer inline-flex items-center gap-2 w-full justify-center">
+                          {uploading ? <Loader2 className="animate-spin" size={18} /> : <Upload size={18} />}
+                          {uploading ? 'Uploading...' : 'Choose Files to Upload'}
+                          <input 
+                            type="file" 
+                            className="hidden" 
+                            accept="image/*,video/*" 
+                            onChange={handleMediaUpload} 
+                            disabled={uploading}
+                            multiple
+                            data-testid="file-upload-input"
+                          />
+                        </label>
+                      </div>
+                    </div>
+                    <p className="text-xs text-zinc-500 mt-3">
+                      Supported: Images (JPG, PNG, WebP) and Videos (MP4). Max 10MB per file.
+                    </p>
+                  </div>
+
+                  {/* Filter */}
+                  <div className="flex gap-2 flex-wrap">
+                    <button
+                      onClick={() => setMediaFilter('all')}
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                        mediaFilter === 'all' ? 'bg-primary text-black' : 'bg-white/10 text-white hover:bg-white/20'
+                      }`}
+                    >
+                      All ({media.length})
+                    </button>
+                    {mediaCategories.map((cat) => {
+                      const count = media.filter(m => m.category === cat.value).length;
+                      return (
+                        <button
+                          key={cat.value}
+                          onClick={() => setMediaFilter(cat.value)}
+                          className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                            mediaFilter === cat.value ? 'bg-primary text-black' : 'bg-white/10 text-white hover:bg-white/20'
+                          }`}
+                        >
+                          {cat.label} ({count})
+                        </button>
+                      );
+                    })}
                   </div>
 
                   {/* Media Grid */}
                   <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                    {media.map((asset) => (
-                      <div key={asset.id} className="group relative aspect-square rounded-xl overflow-hidden">
-                        <img src={asset.url} alt={asset.tag} className="w-full h-full object-cover" />
-                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    {filteredMedia.map((asset) => (
+                      <div key={asset.id} className="group relative aspect-square rounded-xl overflow-hidden bg-zinc-900">
+                        <img 
+                          src={asset.url} 
+                          alt={asset.tag || 'media'} 
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.target.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%23333" width="100" height="100"/><text fill="%23666" x="50%" y="50%" text-anchor="middle" dy=".3em" font-size="12">No Image</text></svg>';
+                          }}
+                        />
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                           <button
                             onClick={() => deleteMediaItem(asset.id)}
                             className="p-2 bg-red-500/20 rounded-lg hover:bg-red-500/40 transition-colors"
+                            data-testid={`delete-media-${asset.id}`}
                           >
                             <Trash2 className="text-red-400" size={20} />
                           </button>
                         </div>
-                        {asset.tag && (
-                          <span className="absolute bottom-2 left-2 text-xs bg-black/50 px-2 py-1 rounded">
-                            {asset.tag}
+                        <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent">
+                          <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded">
+                            {asset.category || 'gallery'}
                           </span>
-                        )}
+                          {asset.tag && asset.tag !== asset.category && (
+                            <span className="text-xs bg-white/10 px-2 py-0.5 rounded ml-1">
+                              {asset.tag}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
+
+                  {filteredMedia.length === 0 && (
+                    <div className="glass-strong rounded-2xl p-12 text-center">
+                      <Image className="mx-auto text-zinc-600 mb-4" size={48} />
+                      <p className="text-zinc-500">No media assets in this category yet.</p>
+                      <p className="text-zinc-600 text-sm mt-2">Upload images using the form above.</p>
+                    </div>
+                  )}
                 </div>
               )}
             </>

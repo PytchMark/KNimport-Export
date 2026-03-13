@@ -48,7 +48,10 @@ create table if not exists media_assets (
   id uuid primary key default gen_random_uuid(),
   type text check (type in ('image','video')),
   url text not null,
-  tag text check (tag in ('delivery','shelf_stock','fresh_closeup','container_day')),
+  storage_path text,
+  original_filename text,
+  tag text check (tag in ('delivery','shelf_stock','fresh_closeup','container_day','gallery')),
+  category text check (category in ('hero','inventory','delivery','quality','gallery')) default 'gallery',
   featured boolean default false,
   created_at timestamp default now()
 );

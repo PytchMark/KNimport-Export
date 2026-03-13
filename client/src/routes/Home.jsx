@@ -1,9 +1,10 @@
 import { Link } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, CheckCircle, Truck, Shield, Leaf, Phone, Package, Clock } from 'lucide-react';
+import { ArrowRight, CheckCircle, Truck, Shield, Leaf, Phone, Package, Clock, Sparkles } from 'lucide-react';
 import { api } from '../api/client';
 import MotionWall from '../components/MotionWall';
+import HeroSlideshow from '../components/HeroSlideshow';
 
 const trustPoints = [
   { icon: Leaf, text: 'Authentic Caribbean Produce' },
@@ -28,17 +29,26 @@ const fadeInUp = {
 export default function Home() {
   const [inventory, setInventory] = useState([]);
   const [media, setMedia] = useState([]);
+  const [heroImages, setHeroImages] = useState([]);
 
   useEffect(() => {
-    api.inventory().then((d) => setInventory(d.items || []));
-    api.media().then((d) => setMedia(d.assets || []));
+    // Fetch all data in parallel
+    Promise.all([
+      api.inventory().catch(() => ({ items: [] })),
+      api.media().catch(() => ({ assets: [] })),
+      api.heroImages().catch(() => ({ images: [] }))
+    ]).then(([invData, mediaData, heroData]) => {
+      setInventory(invData.items || []);
+      setMedia(mediaData.assets || []);
+      setHeroImages(heroData.images || []);
+    });
   }, []);
 
   const featuredItems = useMemo(() => inventory.slice(0, 4), [inventory]);
 
   return (
     <div className="min-h-screen">
-      {/* Hero Section */}
+      {/* Hero Section with Slideshow */}
       <section className="relative min-h-[90vh] flex items-center overflow-hidden">
         <div className="absolute inset-0 hero-glow" />
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background" />
@@ -51,9 +61,12 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
             >
-              <span className="font-mono text-xs uppercase tracking-[0.3em] text-primary">
-                Premium Caribbean <span className="text-secondary">Wholesale</span>
-              </span>
+              <div className="flex items-center gap-2">
+                <Sparkles className="text-primary" size={16} />
+                <span className="font-mono text-xs uppercase tracking-[0.3em] text-primary">
+                  Premium Caribbean <span className="text-secondary">Wholesale</span>
+                </span>
+              </div>
               <h1 className="text-5xl md:text-7xl font-bold tracking-tight leading-[1.1]">
                 Fresh <span className="text-secondary">Caribbean</span>
                 <span className="block text-primary">Produce.</span>
@@ -79,13 +92,11 @@ export default function Home() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.8, delay: 0.2 }}
             >
-              <div className="relative aspect-square rounded-3xl overflow-hidden glow-primary">
-                <img 
-                  src="https://images.unsplash.com/photo-1591793654079-f2a25f4635ba?w=600&q=80" 
-                  alt="Fresh Caribbean produce inspection"
-                  className="w-full h-full object-cover"
+              <div className="relative aspect-square glow-primary">
+                <HeroSlideshow 
+                  images={heroImages} 
+                  autoPlayInterval={5000}
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
               </div>
             </motion.div>
           </div>
@@ -115,8 +126,52 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Quality Showcase - New Section */}
+      {media.filter(m => m.category === 'quality' || m.tag === 'fresh_closeup').length > 0 && (
+        <section className="py-24">
+          <div className="container mx-auto px-6">
+            <motion.div 
+              className="text-center mb-12"
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+            >
+              <span className="font-mono text-xs uppercase tracking-[0.3em] text-primary">Quality First</span>
+              <h2 className="text-4xl md:text-5xl font-semibold mt-4">Premium <span className="text-secondary">Quality</span> Products</h2>
+              <p className="text-zinc-400 mt-4 max-w-2xl mx-auto">
+                Every shipment is inspected and verified to meet our strict quality standards.
+              </p>
+            </motion.div>
+            
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {media
+                .filter(m => m.category === 'quality' || m.tag === 'fresh_closeup')
+                .slice(0, 8)
+                .map((asset, idx) => (
+                  <motion.div
+                    key={asset.id}
+                    className="relative aspect-square rounded-2xl overflow-hidden group"
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: idx * 0.05 }}
+                  >
+                    <img 
+                      src={asset.url} 
+                      alt="Quality produce"
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </motion.div>
+                ))
+              }
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Motion Wall / Proof Section */}
-      <section className="py-24">
+      <section className="py-24 bg-background-paper/30">
         <div className="container mx-auto px-6">
           <motion.div 
             className="text-center mb-12"
@@ -139,7 +194,7 @@ export default function Home() {
       </section>
 
       {/* How It Works */}
-      <section className="py-24 bg-background-paper/30">
+      <section className="py-24">
         <div className="container mx-auto px-6">
           <motion.div 
             className="text-center mb-16"
@@ -180,7 +235,7 @@ export default function Home() {
       </section>
 
       {/* Availability Preview */}
-      <section className="py-24">
+      <section className="py-24 bg-background-paper/30">
         <div className="container mx-auto px-6">
           <div className="flex items-end justify-between mb-12">
             <div>
@@ -239,7 +294,7 @@ export default function Home() {
       </section>
 
       {/* Supply Guarantee Program */}
-      <section className="py-24 bg-background-paper/30">
+      <section className="py-24">
         <div className="container mx-auto px-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <motion.div
@@ -277,11 +332,19 @@ export default function Home() {
               viewport={{ once: true }}
             >
               <div className="aspect-[4/3] rounded-2xl overflow-hidden glow-secondary">
-                <img 
-                  src="https://images.unsplash.com/photo-1768796373344-c7d7935b2aa9?w=600&q=80" 
-                  alt="Modern warehouse operations"
-                  className="w-full h-full object-cover"
-                />
+                {media.filter(m => m.category === 'delivery' || m.tag === 'delivery').length > 0 ? (
+                  <img 
+                    src={media.filter(m => m.category === 'delivery' || m.tag === 'delivery')[0].url}
+                    alt="Delivery operations"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <img 
+                    src="https://images.unsplash.com/photo-1768796373344-c7d7935b2aa9?w=600&q=80" 
+                    alt="Modern warehouse operations"
+                    className="w-full h-full object-cover"
+                  />
+                )}
               </div>
             </motion.div>
           </div>
@@ -289,7 +352,7 @@ export default function Home() {
       </section>
 
       {/* Quality Control Preview */}
-      <section className="py-24">
+      <section className="py-24 bg-background-paper/30">
         <div className="container mx-auto px-6">
           <div className="glass-strong rounded-3xl p-8 md:p-12">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
@@ -306,10 +369,17 @@ export default function Home() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 {['Sourcing', 'Handling', 'Inspection', 'Distribution'].map((item, idx) => (
-                  <div key={item} className="bg-white/5 rounded-xl p-5">
+                  <motion.div 
+                    key={item} 
+                    className="bg-white/5 rounded-xl p-5 hover:bg-white/10 transition-colors"
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: idx * 0.1 }}
+                  >
                     <Shield className="text-primary mb-3" size={24} />
                     <h4 className="font-semibold">{item}</h4>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
             </div>
@@ -318,7 +388,7 @@ export default function Home() {
       </section>
 
       {/* Final CTA */}
-      <section className="py-24 bg-background-paper/50">
+      <section className="py-24">
         <div className="container mx-auto px-6 text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
