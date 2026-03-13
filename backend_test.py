@@ -6,10 +6,10 @@ from datetime import datetime
 
 class KNImportExportAPITester:
     def __init__(self):
-        # Since this is running in container, use the external URL for testing
-        # The backend runs on port 8001 internally but is mapped externally
+        # Test the backend directly on port 8001
         self.base_url = "http://localhost:8001/api"
         self.token = None
+        self.admin_user = None
         self.tests_run = 0
         self.tests_passed = 0
         self.failed_tests = []
@@ -201,14 +201,130 @@ class KNImportExportAPITester:
             return True
         return False
 
+    def test_admin_login(self, username, password, expected_role):
+        """Test admin login with specific credentials"""
+        test_payload = {
+            "username": username,
+            "password": password
+        }
+        
+        success, response = self.run_test(
+            f"Admin Login - {username}",
+            "POST",
+            "/admin/login",
+            200,
+            data=test_payload
+        )
+        
+        if success and 'token' in response and 'user' in response:
+            self.token = response['token']
+            self.admin_user = response['user']
+            print(f"   Successfully logged in as {response['user']['username']} with role {response['user']['role']}")
+            
+            # Verify the role matches expected
+            if response['user']['role'] == expected_role:
+                print(f"   ✅ Role verification passed: {expected_role}")
+                return True
+            else:
+                print(f"   ❌ Role mismatch: expected {expected_role}, got {response['user']['role']}")
+                return False
+        return False
+
+    def test_admin_login_invalid(self, username, password):
+        """Test admin login with invalid credentials"""
+        test_payload = {
+            "username": username,
+            "password": password
+        }
+        
+        success, response = self.run_test(
+            f"Admin Login Invalid - {username}",
+            "POST",
+            "/admin/login",
+            401,
+            data=test_payload
+        )
+        
+        if success and 'error' in response:
+            print(f"   ✅ Correctly rejected invalid credentials: {response['error']}")
+            return True
+        return False
+
+    def test_admin_login_invalid_empty(self, username, password):
+        """Test admin login with invalid/empty credentials"""
+        test_payload = {
+            "username": username,
+            "password": password
+        }
+        
+        # Empty password should return 400 (bad request), not 401
+        expected_status = 400 if not password else 401
+        
+        success, response = self.run_test(
+            f"Admin Login Invalid Empty - {username}",
+            "POST",
+            "/admin/login",
+            expected_status,
+            data=test_payload
+        )
+        
+        if success and 'error' in response:
+            print(f"   ✅ Correctly rejected invalid credentials: {response['error']}")
+            return True
+        return False
+
+    def test_admin_inventory_protected(self):
+        """Test admin inventory endpoint (requires auth)"""
+        if not self.token:
+            print("   ⚠️ Skipping - no admin token available")
+            return False
+            
+        success, response = self.run_test(
+            "Admin Inventory (Protected)",
+            "GET",
+            "/admin/inventory",
+            200
+        )
+        if success and 'items' in response:
+            print(f"   Found {len(response['items'])} inventory items (admin endpoint)")
+            return True
+        return False
+
+    def test_admin_inventory_create(self):
+        """Test creating inventory item (requires auth)"""
+        if not self.token:
+            print("   ⚠️ Skipping - no admin token available")
+            return False
+            
+        test_payload = {
+            "name": "Test Mangoes",
+            "status": "available_now",
+            "unit_label": "per box",
+            "quality_note": "Fresh premium quality"
+        }
+        
+        success, response = self.run_test(
+            "Admin Create Inventory",
+            "POST",
+            "/admin/inventory",
+            201,
+            data=test_payload
+        )
+        if success and 'item' in response:
+            print(f"   Created inventory item: {response['item']['name']}")
+            return True
+        return False
+
 def main():
     print("🚀 Starting K&N Import Export API Tests")
     print("=" * 50)
     
     tester = KNImportExportAPITester()
     
-    # Test all public endpoints
-    results = {
+    # Test public endpoints first
+    print("\n📋 TESTING PUBLIC ENDPOINTS")
+    print("-" * 30)
+    public_results = {
         'health': tester.test_health_check(),
         'inventory': tester.test_inventory_endpoint(),
         'media': tester.test_media_endpoint(),
@@ -217,6 +333,29 @@ def main():
         'gallery_tags': tester.test_gallery_with_tags(),
         'create_request': tester.test_request_creation()
     }
+    
+    # Test admin authentication with all credentials
+    print("\n🔐 TESTING ADMIN AUTHENTICATION")
+    print("-" * 30)
+    auth_results = {
+        'admin1_login': tester.test_admin_login('admin1', 'KnAdmin2026!', 'admin'),
+        'admin2_login': tester.test_admin_login('admin2', 'KnAdmin2026!', 'admin'),
+        'masteradmin_login': tester.test_admin_login('masteradmin', 'KnMaster2026!Dev', 'masteradmin'),
+        'invalid_login_1': tester.test_admin_login_invalid('admin1', 'wrongpassword'),
+        'invalid_login_2': tester.test_admin_login_invalid('invaliduser', 'KnAdmin2026!'),
+        'invalid_login_3': tester.test_admin_login_invalid_empty('admin1', '')
+    }
+    
+    # Test admin protected endpoints (using last successful login)
+    print("\n🛡️ TESTING ADMIN PROTECTED ENDPOINTS")
+    print("-" * 30)
+    admin_results = {
+        'admin_inventory': tester.test_admin_inventory_protected(),
+        'admin_inventory_create': tester.test_admin_inventory_create()
+    }
+    
+    # Combine all results
+    all_results = {**public_results, **auth_results, **admin_results}
     
     # Print summary
     print("\n" + "=" * 50)
@@ -227,9 +366,20 @@ def main():
     print(f"Tests failed: {tester.tests_run - tester.tests_passed}")
     print(f"Success rate: {(tester.tests_passed / tester.tests_run * 100):.1f}%")
     
-    # Show individual results
+    # Show individual results by category
     print("\n📋 Individual Results:")
-    for test_name, passed in results.items():
+    print("\n🌍 Public Endpoints:")
+    for test_name, passed in public_results.items():
+        status = "✅ PASSED" if passed else "❌ FAILED"
+        print(f"  {test_name}: {status}")
+        
+    print("\n🔐 Authentication Tests:")
+    for test_name, passed in auth_results.items():
+        status = "✅ PASSED" if passed else "❌ FAILED"
+        print(f"  {test_name}: {status}")
+        
+    print("\n🛡️ Admin Endpoints:")
+    for test_name, passed in admin_results.items():
         status = "✅ PASSED" if passed else "❌ FAILED"
         print(f"  {test_name}: {status}")
     

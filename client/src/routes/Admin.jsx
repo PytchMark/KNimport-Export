@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../api/client';
-import { supabase } from '../lib/supabase';
 import { 
   LayoutDashboard, Package, Users, Image, Settings, LogOut,
   ChevronRight, Plus, Search, Filter, Upload, Trash2, X,
-  Clock, Phone, Mail, Building, Loader2, UserPlus, Edit2, Eye, EyeOff
+  Clock, Phone, Mail, Building, Loader2, Edit2, Eye, EyeOff, User
 } from 'lucide-react';
 
 const statuses = ['new', 'contacted', 'quoted', 'confirmed', 'fulfilled', 'archived'];
@@ -36,66 +35,39 @@ const sidebarItems = [
 ];
 
 export function AdminLogin() {
-  const [mode, setMode] = useState('login'); // 'login' or 'signup'
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [msg, setMsg] = useState({ type: '', text: '' });
+  const [error, setError] = useState('');
 
-  const login = async () => {
-    if (!supabase) return setMsg({ type: 'error', text: 'Supabase not configured' });
+  const login = async (e) => {
+    e.preventDefault();
     setLoading(true);
-    setMsg({ type: '', text: '' });
+    setError('');
+    
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-      localStorage.setItem('admin_token', data.session.access_token);
+      const response = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Login failed');
+      }
+      
+      // Store token and user info
+      localStorage.setItem('admin_token', data.token);
+      localStorage.setItem('admin_user', JSON.stringify(data.user));
       window.location.href = '/admin/dashboard';
     } catch (err) {
-      setMsg({ type: 'error', text: err.message || 'Login failed' });
+      setError(err.message || 'Login failed');
     } finally {
       setLoading(false);
     }
-  };
-
-  const signup = async () => {
-    if (!supabase) return setMsg({ type: 'error', text: 'Supabase not configured' });
-    if (password !== confirmPassword) {
-      return setMsg({ type: 'error', text: 'Passwords do not match' });
-    }
-    if (password.length < 6) {
-      return setMsg({ type: 'error', text: 'Password must be at least 6 characters' });
-    }
-    setLoading(true);
-    setMsg({ type: '', text: '' });
-    try {
-      const { data, error } = await supabase.auth.signUp({ 
-        email, 
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/admin/dashboard`
-        }
-      });
-      if (error) throw error;
-      
-      if (data.user && !data.session) {
-        setMsg({ type: 'success', text: 'Check your email to confirm your account!' });
-      } else if (data.session) {
-        localStorage.setItem('admin_token', data.session.access_token);
-        window.location.href = '/admin/dashboard';
-      }
-    } catch (err) {
-      setMsg({ type: 'error', text: err.message || 'Signup failed' });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    mode === 'login' ? login() : signup();
   };
 
   return (
@@ -109,24 +81,25 @@ export function AdminLogin() {
           <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center mx-auto mb-4">
             <span className="font-serif font-bold text-black text-2xl">K</span>
           </div>
-          <h1 className="text-2xl font-bold">{mode === 'login' ? 'Admin Login' : 'Create Admin Account'}</h1>
-          <p className="text-zinc-500 text-sm mt-2">
-            {mode === 'login' ? 'Sign in to access the dashboard' : 'Create your admin account to get started'}
-          </p>
+          <h1 className="text-2xl font-bold">Admin Login</h1>
+          <p className="text-zinc-500 text-sm mt-2">Sign in to access the dashboard</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="glass-strong rounded-2xl p-8 space-y-5">
+        <form onSubmit={login} className="glass-strong rounded-2xl p-8 space-y-5">
           <div>
-            <label className="input-label">Email</label>
-            <input 
-              type="email"
-              className="input" 
-              placeholder="admin@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              data-testid="admin-email-input"
-            />
+            <label className="input-label">Username</label>
+            <div className="relative">
+              <input 
+                type="text"
+                className="input pl-10" 
+                placeholder="Enter username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+                data-testid="admin-username-input"
+              />
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
+            </div>
           </div>
           <div>
             <label className="input-label">Password</label>
@@ -138,7 +111,6 @@ export function AdminLogin() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                minLength={6}
                 data-testid="admin-password-input"
               />
               <button
@@ -151,27 +123,9 @@ export function AdminLogin() {
             </div>
           </div>
           
-          {mode === 'signup' && (
-            <div>
-              <label className="input-label">Confirm Password</label>
-              <input 
-                type={showPassword ? 'text' : 'password'}
-                className="input" 
-                placeholder="••••••••"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-                minLength={6}
-                data-testid="admin-confirm-password-input"
-              />
-            </div>
-          )}
-          
-          {msg.text && (
-            <p className={`text-sm rounded-lg px-4 py-2 ${
-              msg.type === 'error' ? 'text-red-400 bg-red-500/10' : 'text-green-400 bg-green-500/10'
-            }`}>
-              {msg.text}
+          {error && (
+            <p className="text-sm text-red-400 bg-red-500/10 rounded-lg px-4 py-2" data-testid="login-error">
+              {error}
             </p>
           )}
           
@@ -179,32 +133,14 @@ export function AdminLogin() {
             type="submit"
             className="btn-primary w-full flex items-center justify-center gap-2"
             disabled={loading}
-            data-testid={mode === 'login' ? 'admin-login-btn' : 'admin-signup-btn'}
+            data-testid="admin-login-btn"
           >
-            {loading ? (
-              <Loader2 className="animate-spin" size={18} />
-            ) : mode === 'login' ? (
-              'Sign In'
-            ) : (
-              <>
-                <UserPlus size={18} /> Create Account
-              </>
-            )}
+            {loading ? <Loader2 className="animate-spin" size={18} /> : 'Sign In'}
           </button>
 
-          <div className="text-center pt-2">
-            <button
-              type="button"
-              onClick={() => {
-                setMode(mode === 'login' ? 'signup' : 'login');
-                setMsg({ type: '', text: '' });
-              }}
-              className="text-sm text-zinc-400 hover:text-primary transition-colors"
-              data-testid="toggle-auth-mode"
-            >
-              {mode === 'login' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
-            </button>
-          </div>
+          <p className="text-xs text-zinc-600 text-center">
+            Internal admin access only
+          </p>
         </form>
       </motion.div>
     </div>
@@ -218,6 +154,7 @@ export function AdminDashboard() {
   const [media, setMedia] = useState([]);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState(null);
   
   // Inventory form
   const [newItem, setNewItem] = useState({ name: '', status: 'available_now', unit_label: 'per box', quality_note: '' });
@@ -229,6 +166,15 @@ export function AdminDashboard() {
   const [mediaFilter, setMediaFilter] = useState('all');
   
   const token = localStorage.getItem('admin_token');
+
+  useEffect(() => {
+    const user = localStorage.getItem('admin_user');
+    if (user) {
+      try {
+        setCurrentUser(JSON.parse(user));
+      } catch {}
+    }
+  }, []);
 
   const loadData = async () => {
     setLoading(true);
@@ -243,6 +189,10 @@ export function AdminDashboard() {
       setMedia(mediaData.assets || []);
     } catch (err) {
       console.error(err);
+      // If unauthorized, redirect to login
+      if (err.message?.includes('401') || err.message?.includes('unauthorized')) {
+        logout();
+      }
     } finally {
       setLoading(false);
     }
@@ -326,6 +276,7 @@ export function AdminDashboard() {
 
   const logout = () => {
     localStorage.removeItem('admin_token');
+    localStorage.removeItem('admin_user');
     window.location.href = '/admin';
   };
 
@@ -345,6 +296,23 @@ export function AdminDashboard() {
               </div>
             </div>
           </div>
+          
+          {/* Current User Info */}
+          {currentUser && (
+            <div className="px-4 py-3 border-b border-border bg-white/5">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                  <User className="text-primary" size={16} />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">{currentUser.username}</p>
+                  <p className="text-xs text-zinc-500 capitalize">
+                    {currentUser.role === 'masteradmin' ? '⭐ Master Admin' : 'Admin'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
           
           <nav className="p-4 space-y-1">
             {sidebarItems.map((item) => (

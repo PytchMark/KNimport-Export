@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import multer from 'multer';
-import { requireAdmin } from '../middleware/auth.js';
+import { requireAdmin, loginAdmin, getAdminList } from '../middleware/auth.js';
 import { getSupabaseAdmin } from '../services/supabase.js';
 import { uploadToStorage, deleteFromStorage, MEDIA_CATEGORIES, BUCKET_NAME } from '../services/storage.js';
 
@@ -19,6 +19,23 @@ const upload = multer({
   }
 });
 
+// Login endpoint - no auth required
+router.post('/login', (req, res) => {
+  const { username, password } = req.body;
+  
+  if (!username || !password) {
+    return res.status(400).json({ error: 'Username and password required' });
+  }
+  
+  const result = loginAdmin(username, password);
+  if (!result) {
+    return res.status(401).json({ error: 'Invalid credentials' });
+  }
+  
+  res.json(result);
+});
+
+// Protected routes below
 router.use(requireAdmin);
 
 function getAdminClientOrRespond(res) {
