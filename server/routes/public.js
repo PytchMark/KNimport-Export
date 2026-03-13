@@ -42,13 +42,14 @@ router.get('/gallery', async (req, res) => {
       url: asset.url,
       type: asset.type || 'image',
       tag: asset.tag || 'gallery',
-      category: asset.category || 'gallery',
+      category: asset.category || asset.tag || 'gallery', // Fallback to tag if category doesn't exist
       storage_path: asset.storage_path
     }));
 
     res.json({ assets });
   } catch (error) {
-    res.status(500).json({ error: error.message || 'Failed to fetch gallery assets' });
+    console.warn('Gallery fetch warning:', error.message);
+    res.json({ assets: [] }); // Return empty on error
   }
 });
 
@@ -58,16 +59,38 @@ router.get('/hero-images', async (_req, res) => {
   if (!supabaseAdmin) return;
 
   try {
-    const { data, error } = await supabaseAdmin
-      .from('media_assets')
-      .select('*')
-      .eq('category', 'hero')
-      .order('created_at', { ascending: false });
+    // Try to filter by category if the column exists
+    let data = [];
+    try {
+      const result = await supabaseAdmin
+        .from('media_assets')
+        .select('*')
+        .eq('category', 'hero')
+        .order('created_at', { ascending: false });
+      
+      if (!result.error) {
+        data = result.data || [];
+      }
+    } catch {
+      // If category column doesn't exist yet, fall back to getting all media
+      // and filtering by tag
+      const result = await supabaseAdmin
+        .from('media_assets')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (!result.error) {
+        data = (result.data || []).filter(item => 
+          item.tag === 'fresh_closeup' || item.tag === 'gallery'
+        ).slice(0, 6);
+      }
+    }
     
-    if (error) throw error;
-    res.json({ images: data || [] });
+    res.json({ images: data });
   } catch (error) {
-    res.status(500).json({ error: error.message || 'Failed to fetch hero images' });
+    // Return empty array on any error to let frontend use fallbacks
+    console.warn('Hero images fetch warning:', error.message);
+    res.json({ images: [] });
   }
 });
 
