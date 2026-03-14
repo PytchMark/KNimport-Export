@@ -23,24 +23,25 @@ Caribbean wholesale produce distribution platform with admin portal for inventor
 
 ### Admin Portal Revamp ✅
 - **Clean Layout**: Admin routes separated from main site (no navbar/footer)
+- **K&N Logo**: Real logo image on login page, sidebar, and favicon
 - **Professional Design**: Dark theme with amber/green accent colors
 - **Dashboard Overview**: Stats cards, recent requests, quick navigation
 - **Request Pipeline**: Kanban-style board with status columns
-- **Inventory Manager**: Add/edit/delete products with inline editing
+- **Inventory Manager**: Add/edit/delete products with inline editing and image upload
 - **Media Library**: Drag-drop upload zone with category selector
 - **User-friendly copy**: All technical/dev text removed
 
-### Inline Editing for Inventory ✅
-- Edit/delete buttons appear on row hover
-- Click edit to enable inline editing for name, status, unit
-- Save/Cancel buttons to commit or discard changes
-- Success notifications on save
+### Product Image Upload ✅
+- Camera icon to upload product photos when adding items
+- Image preview in add form
+- Image column in inventory table
+- Edit mode allows changing product images
+- Placeholder icon for items without images
 
-### Simplified Authentication ✅
-- 3 hardcoded admin accounts in .env file
-- JWT-based token authentication (24hr expiry)
-- No external auth dependency
-- Clean login page
+### Favicon & Branding ✅
+- K&N logo as browser favicon
+- Logo displayed on admin login page
+- Logo displayed in admin sidebar
 
 ### Cloudinary to Supabase Migration ✅
 - Removed Cloudinary dependency
