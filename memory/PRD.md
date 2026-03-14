@@ -10,51 +10,45 @@ Caribbean wholesale produce distribution platform with admin portal for inventor
 - **Storage**: Supabase Storage (bucket: `kn-media`)
 - **Auth**: Hardcoded admin credentials in .env file (JWT tokens)
 
-## Admin Accounts (in .env file)
+## Admin Accounts (in /app/.env)
 | Username | Password | Role |
 |----------|----------|------|
-| admin1 | KnAdmin2026! | admin |
-| admin2 | KnAdmin2026! | admin |
-| masteradmin | KnMaster2026!Dev | masteradmin |
+| admin1 | KnAdmin2026! | Admin (full access) |
+| admin2 | KnAdmin2026! | Admin (full access) |
+| masteradmin | KnMaster2026!Dev | Master Admin (dev use) |
 
 *Change passwords by editing `/app/.env` file*
 
-## Core Requirements
-1. Public website showcasing produce inventory and quality
-2. Admin portal for managing requests, inventory, and media
-3. Media storage in Supabase buckets (migrated from Cloudinary)
-4. Hero slideshow displaying uploaded images from Supabase
+## What's Been Implemented (2026-01-14)
 
-## What's Been Implemented (2026-01-13)
+### Admin Portal Revamp ✅
+- **Clean Layout**: Admin routes separated from main site (no navbar/footer)
+- **Professional Design**: Dark theme with amber/green accent colors
+- **Dashboard Overview**: Stats cards, recent requests, quick navigation
+- **Request Pipeline**: Kanban-style board with status columns (new, contacted, quoted, confirmed, fulfilled, archived)
+- **Inventory Manager**: Add/delete products with status badges
+- **Media Library**: Drag-drop upload zone with category selector
 
-### Cloudinary to Supabase Migration ✅
-- Removed Cloudinary dependency from package.json
-- Created `/app/server/services/storage.js` for Supabase storage uploads
-- Updated admin routes to support file uploads to Supabase bucket
-- Admin portal now uploads directly to Supabase storage
-
-### Simplified Admin Authentication ✅
+### Simplified Authentication ✅
 - 3 hardcoded admin accounts in .env file
-- 2 admin accounts (admin1, admin2) for regular use
-- 1 master admin account (masteradmin) for developers
 - JWT-based token authentication (24hr expiry)
 - No external auth dependency
+- Clean login page with user icon
 
-### Admin Portal ✅
-- Login with username/password
-- Dashboard with request pipeline stats
-- Inventory management (add/delete items)
-- Media management with category-based organization
-- Categories: hero, inventory, delivery, quality, gallery
+### UI Features ✅
+- Notification toasts for success/error messages
 - User info displayed in sidebar with role badge
+- Category filter buttons with counts
+- Responsive stat cards with color coding
+- Delete confirmations for destructive actions
 
-### Hero Section Slideshow ✅
-- HeroSlideshow component with auto-play (5 sec interval)
-- Navigation controls (prev/next, dots, play/pause)
-- Progress bar indicator
-- Falls back to quality images if no hero images uploaded
+### Cloudinary to Supabase Migration ✅
+- Removed Cloudinary dependency
+- Supabase Storage integration for uploads
+- Media assets stored with category cataloging
 
 ## API Endpoints
+
 ### Public
 - `GET /api/health` - Health check
 - `GET /api/hero-images` - Hero section images
@@ -93,19 +87,20 @@ ALTER TABLE media_assets ADD COLUMN IF NOT EXISTS original_filename text;
 ```
 
 ## Tech Stack
-- React 18, Vite 6
+- React 18, Vite 6, React Router
 - Express 4, Node.js
 - Supabase JS v2
 - Tailwind CSS, Framer Motion
 - Multer (file uploads)
+- Lucide React (icons)
 
-## Testing Results (2026-01-13)
-- Backend: 100% (15/15 tests passed)
-- Frontend: 100% (all functionality working)
+## Testing Results (2026-01-14)
+- Backend: 100% (all endpoints working)
+- Frontend: 95% (all features functional)
 
 ## Backlog / Future
-- P1: Image optimization/compression
-- P1: Video support in slideshow
+- P1: Image optimization/compression on upload
+- P1: Edit inventory items inline
 - P2: Drag-drop reorder for hero images
-- P2: Inventory image uploads
-- P3: Analytics dashboard
+- P2: Bulk media upload progress indicator
+- P3: Analytics dashboard with charts
