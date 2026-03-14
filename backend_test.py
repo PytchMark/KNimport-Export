@@ -6,7 +6,7 @@ from datetime import datetime
 
 class KNImportExportAPITester:
     def __init__(self):
-        # Test the backend directly on port 8001
+        # Test the backend using the public URL pattern
         self.base_url = "http://localhost:8001/api"
         self.token = None
         self.admin_user = None

@@ -1,39 +1,41 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../api/client';
 import { 
-  LayoutDashboard, Package, Users, Image, Settings, LogOut,
-  ChevronRight, Plus, Search, Filter, Upload, Trash2, X,
-  Clock, Phone, Mail, Building, Loader2, Edit2, Eye, EyeOff, User
+  LayoutDashboard, Package, Image, LogOut, Plus, Trash2, X,
+  Clock, Phone, Mail, Building, Loader2, User, Upload, Check,
+  AlertCircle, RefreshCw, Eye, EyeOff, ChevronDown, ImagePlus
 } from 'lucide-react';
 
-const statuses = ['new', 'contacted', 'quoted', 'confirmed', 'fulfilled', 'archived'];
-const statusColors = {
-  new: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
-  contacted: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
-  quoted: 'bg-purple-500/10 text-purple-500 border-purple-500/20',
-  confirmed: 'bg-green-500/10 text-green-500 border-green-500/20',
-  fulfilled: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
-  archived: 'bg-zinc-500/10 text-zinc-500 border-zinc-500/20'
+// Status configuration
+const REQUEST_STATUSES = ['new', 'contacted', 'quoted', 'confirmed', 'fulfilled', 'archived'];
+const STATUS_STYLES = {
+  new: { bg: 'bg-blue-500/15', text: 'text-blue-400', border: 'border-blue-500/30' },
+  contacted: { bg: 'bg-amber-500/15', text: 'text-amber-400', border: 'border-amber-500/30' },
+  quoted: { bg: 'bg-purple-500/15', text: 'text-purple-400', border: 'border-purple-500/30' },
+  confirmed: { bg: 'bg-emerald-500/15', text: 'text-emerald-400', border: 'border-emerald-500/30' },
+  fulfilled: { bg: 'bg-green-500/15', text: 'text-green-400', border: 'border-green-500/30' },
+  archived: { bg: 'bg-zinc-500/15', text: 'text-zinc-400', border: 'border-zinc-500/30' }
 };
 
-const mediaCategories = [
-  { value: 'hero', label: 'Hero Images', desc: 'Homepage slideshow' },
-  { value: 'inventory', label: 'Inventory', desc: 'Product images' },
-  { value: 'delivery', label: 'Delivery', desc: 'Delivery proof shots' },
-  { value: 'quality', label: 'Quality', desc: 'QC inspection photos' },
-  { value: 'gallery', label: 'Gallery', desc: 'General gallery' }
+// Media categories
+const MEDIA_CATEGORIES = [
+  { value: 'hero', label: 'Hero Slideshow', icon: '🖼️' },
+  { value: 'inventory', label: 'Product Images', icon: '📦' },
+  { value: 'delivery', label: 'Delivery Proofs', icon: '🚚' },
+  { value: 'quality', label: 'Quality Shots', icon: '✅' },
+  { value: 'gallery', label: 'General Gallery', icon: '🎨' }
 ];
 
-const mediaTags = ['fresh_closeup', 'delivery', 'shelf_stock', 'container_day', 'gallery'];
-
-const sidebarItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', key: 'dashboard' },
+// Sidebar navigation
+const NAV_ITEMS = [
+  { icon: LayoutDashboard, label: 'Overview', key: 'dashboard' },
   { icon: Package, label: 'Requests', key: 'requests' },
   { icon: Package, label: 'Inventory', key: 'inventory' },
-  { icon: Image, label: 'Media', key: 'media' }
+  { icon: Image, label: 'Media Library', key: 'media' }
 ];
 
+// ============ LOGIN COMPONENT ============
 export function AdminLogin() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -41,82 +43,81 @@ export function AdminLogin() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const login = async (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
+    if (!username || !password) return;
+    
     setLoading(true);
     setError('');
     
     try {
-      const response = await fetch('/api/admin/login', {
+      const res = await fetch('/api/admin/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
       });
       
-      const data = await response.json();
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Login failed');
       
-      if (!response.ok) {
-        throw new Error(data.error || 'Login failed');
-      }
-      
-      // Store token and user info
       localStorage.setItem('admin_token', data.token);
       localStorage.setItem('admin_user', JSON.stringify(data.user));
       window.location.href = '/admin/dashboard';
     } catch (err) {
-      setError(err.message || 'Login failed');
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-6">
+    <div className="min-h-screen flex items-center justify-center p-6 bg-[#0a0a0a]">
       <motion.div 
-        className="w-full max-w-md"
+        className="w-full max-w-sm"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
       >
+        {/* Logo */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center mx-auto mb-4">
-            <span className="font-serif font-bold text-black text-2xl">K</span>
+          <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-amber-400 to-green-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-amber-500/20">
+            <span className="font-serif font-bold text-black text-xl">K&N</span>
           </div>
-          <h1 className="text-2xl font-bold">Admin Login</h1>
-          <p className="text-zinc-500 text-sm mt-2">Sign in to access the dashboard</p>
+          <h1 className="text-xl font-semibold text-white">Admin Portal</h1>
+          <p className="text-zinc-500 text-sm mt-1">K&N Import & Export</p>
         </div>
 
-        <form onSubmit={login} className="glass-strong rounded-2xl p-8 space-y-5">
+        {/* Login Form */}
+        <form onSubmit={handleLogin} className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-6 space-y-4">
           <div>
-            <label className="input-label">Username</label>
+            <label className="block text-xs font-medium text-zinc-400 mb-2 uppercase tracking-wider">Username</label>
             <div className="relative">
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
               <input 
                 type="text"
-                className="input pl-10" 
+                className="w-full bg-zinc-800/50 border border-zinc-700 rounded-lg pl-10 pr-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition-all"
                 placeholder="Enter username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                required
                 data-testid="admin-username-input"
               />
-              <User className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
             </div>
           </div>
+
           <div>
-            <label className="input-label">Password</label>
+            <label className="block text-xs font-medium text-zinc-400 mb-2 uppercase tracking-wider">Password</label>
             <div className="relative">
               <input 
                 type={showPassword ? 'text' : 'password'}
-                className="input pr-12" 
+                className="w-full bg-zinc-800/50 border border-zinc-700 rounded-lg px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition-all pr-12"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                required
                 data-testid="admin-password-input"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
@@ -124,29 +125,29 @@ export function AdminLogin() {
           </div>
           
           {error && (
-            <p className="text-sm text-red-400 bg-red-500/10 rounded-lg px-4 py-2" data-testid="login-error">
+            <div className="flex items-center gap-2 text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
+              <AlertCircle size={16} />
               {error}
-            </p>
+            </div>
           )}
           
           <button 
             type="submit"
-            className="btn-primary w-full flex items-center justify-center gap-2"
-            disabled={loading}
+            disabled={loading || !username || !password}
+            className="w-full bg-gradient-to-r from-amber-500 to-green-500 text-black font-semibold py-3 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             data-testid="admin-login-btn"
           >
             {loading ? <Loader2 className="animate-spin" size={18} /> : 'Sign In'}
           </button>
-
-          <p className="text-xs text-zinc-600 text-center">
-            Internal admin access only
-          </p>
         </form>
+
+        <p className="text-center text-zinc-600 text-xs mt-4">Internal admin access only</p>
       </motion.div>
     </div>
   );
 }
 
+// ============ DASHBOARD COMPONENT ============
 export function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [requests, setRequests] = useState([]);
@@ -155,123 +156,154 @@ export function AdminDashboard() {
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
+  const [notification, setNotification] = useState(null);
   
-  // Inventory form
-  const [newItem, setNewItem] = useState({ name: '', status: 'available_now', unit_label: 'per box', quality_note: '' });
-  
-  // Media upload state
+  // Forms
+  const [newItem, setNewItem] = useState({ name: '', status: 'available_now', unit_label: 'per box' });
   const [uploading, setUploading] = useState(false);
   const [uploadCategory, setUploadCategory] = useState('gallery');
-  const [uploadTag, setUploadTag] = useState('gallery');
   const [mediaFilter, setMediaFilter] = useState('all');
+  const [dragOver, setDragOver] = useState(false);
   
   const token = localStorage.getItem('admin_token');
 
+  // Show notification
+  const showNotification = useCallback((message, type = 'success') => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 3000);
+  }, []);
+
+  // Load user info
   useEffect(() => {
     const user = localStorage.getItem('admin_user');
     if (user) {
-      try {
-        setCurrentUser(JSON.parse(user));
-      } catch {}
+      try { setCurrentUser(JSON.parse(user)); } catch {}
     }
   }, []);
 
-  const loadData = async () => {
+  // Load all data
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [reqData, invData, mediaData] = await Promise.all([
-        api.adminRequests(token),
-        api.adminInventory(token),
-        api.media()
+      const [reqRes, invRes, mediaRes] = await Promise.all([
+        api.adminRequests(token).catch(() => ({ requests: [] })),
+        api.adminInventory(token).catch(() => ({ items: [] })),
+        api.media().catch(() => ({ assets: [] }))
       ]);
-      setRequests(reqData.requests || []);
-      setInventory(invData.items || []);
-      setMedia(mediaData.assets || []);
+      setRequests(reqRes.requests || []);
+      setInventory(invRes.items || []);
+      setMedia(mediaRes.assets || []);
     } catch (err) {
-      console.error(err);
-      // If unauthorized, redirect to login
-      if (err.message?.includes('401') || err.message?.includes('unauthorized')) {
-        logout();
-      }
+      console.error('Load error:', err);
+      if (err.message?.includes('401')) logout();
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => { 
-    if (token) loadData(); 
   }, [token]);
 
-  const counts = useMemo(() => ({
-    new: requests.filter((r) => r.status === 'new').length,
-    contacted: requests.filter((r) => r.status === 'contacted').length,
-    quoted: requests.filter((r) => r.status === 'quoted').length,
-    confirmed: requests.filter((r) => r.status === 'confirmed').length,
-    fulfilled: requests.filter((r) => r.status === 'fulfilled').length
-  }), [requests]);
+  useEffect(() => { if (token) loadData(); }, [token, loadData]);
+
+  // Stats
+  const stats = useMemo(() => ({
+    newRequests: requests.filter(r => r.status === 'new').length,
+    inProgress: requests.filter(r => ['contacted', 'quoted', 'confirmed'].includes(r.status)).length,
+    fulfilled: requests.filter(r => r.status === 'fulfilled').length,
+    totalInventory: inventory.length,
+    totalMedia: media.length,
+    heroImages: media.filter(m => m.category === 'hero').length
+  }), [requests, inventory, media]);
 
   const filteredMedia = useMemo(() => {
     if (mediaFilter === 'all') return media;
-    return media.filter((m) => m.category === mediaFilter);
+    return media.filter(m => m.category === mediaFilter);
   }, [media, mediaFilter]);
 
-  const updateRequestStatus = async (id, newStatus) => {
-    await api.updateRequest(id, { status: newStatus }, token);
-    loadData();
-  };
-
-  const addInventoryItem = async () => {
-    if (!newItem.name) return;
-    await api.createInventory(newItem, token);
-    setNewItem({ name: '', status: 'available_now', unit_label: 'per box', quality_note: '' });
-    loadData();
-  };
-
-  const handleMediaUpload = async (e) => {
-    const files = e.target.files;
-    if (!files?.length) return;
-    
-    setUploading(true);
+  // Actions
+  const updateRequestStatus = async (id, status) => {
     try {
-      for (const file of files) {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('category', uploadCategory);
-        formData.append('tag', uploadTag);
-        
-        const response = await fetch('/api/admin/media/upload', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          },
-          body: formData
-        });
-        
-        if (!response.ok) {
-          const err = await response.json();
-          throw new Error(err.error || 'Upload failed');
-        }
-      }
+      await api.updateRequest(id, { status }, token);
+      showNotification('Request updated');
       loadData();
     } catch (err) {
-      console.error('Upload failed:', err);
-      alert('Upload failed: ' + err.message);
-    } finally {
-      setUploading(false);
-      e.target.value = ''; // Reset file input
+      showNotification(err.message, 'error');
     }
   };
 
-  const deleteMediaItem = async (id) => {
-    if (!confirm('Are you sure you want to delete this media?')) return;
-    await api.deleteMedia(id, token);
-    loadData();
+  const addInventoryItem = async () => {
+    if (!newItem.name.trim()) return;
+    try {
+      await api.createInventory(newItem, token);
+      setNewItem({ name: '', status: 'available_now', unit_label: 'per box' });
+      showNotification('Item added to inventory');
+      loadData();
+    } catch (err) {
+      showNotification(err.message, 'error');
+    }
   };
 
   const deleteInventoryItem = async (id) => {
-    if (!confirm('Are you sure you want to remove this item?')) return;
-    await api.deleteInventory(id, token);
-    loadData();
+    if (!confirm('Remove this item from inventory?')) return;
+    try {
+      await api.deleteInventory(id, token);
+      showNotification('Item removed');
+      loadData();
+    } catch (err) {
+      showNotification(err.message, 'error');
+    }
+  };
+
+  const handleFileUpload = async (files) => {
+    if (!files?.length) return;
+    
+    setUploading(true);
+    let successCount = 0;
+    
+    for (const file of files) {
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('category', uploadCategory);
+        formData.append('tag', uploadCategory);
+        
+        const res = await fetch('/api/admin/media/upload', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: formData
+        });
+        
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || 'Upload failed');
+        }
+        successCount++;
+      } catch (err) {
+        showNotification(`Failed to upload ${file.name}: ${err.message}`, 'error');
+      }
+    }
+    
+    setUploading(false);
+    if (successCount > 0) {
+      showNotification(`${successCount} file(s) uploaded successfully`);
+      loadData();
+    }
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setDragOver(false);
+    const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+    if (files.length) handleFileUpload(files);
+  };
+
+  const deleteMediaItem = async (id) => {
+    if (!confirm('Delete this media asset?')) return;
+    try {
+      await api.deleteMedia(id, token);
+      showNotification('Media deleted');
+      loadData();
+    } catch (err) {
+      showNotification(err.message, 'error');
+    }
   };
 
   const logout = () => {
@@ -280,408 +312,415 @@ export function AdminDashboard() {
     window.location.href = '/admin';
   };
 
+  // ============ RENDER ============
   return (
-    <div className="min-h-screen bg-background">
-      <div className="flex">
-        {/* Sidebar */}
-        <aside className="w-64 min-h-screen bg-background-paper border-r border-border fixed left-0 top-0">
-          <div className="p-6 border-b border-border">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
-                <span className="font-serif font-bold text-black text-lg">K</span>
+    <div className="min-h-screen bg-[#0a0a0a] flex">
+      {/* Notification Toast */}
+      <AnimatePresence>
+        {notification && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg flex items-center gap-2 ${
+              notification.type === 'error' 
+                ? 'bg-red-500/90 text-white' 
+                : 'bg-emerald-500/90 text-white'
+            }`}
+          >
+            {notification.type === 'error' ? <AlertCircle size={18} /> : <Check size={18} />}
+            {notification.message}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Sidebar */}
+      <aside className="w-60 bg-zinc-900/50 border-r border-zinc-800 flex flex-col fixed h-full">
+        {/* Logo */}
+        <div className="p-5 border-b border-zinc-800">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-400 to-green-500 flex items-center justify-center">
+              <span className="font-serif font-bold text-black text-sm">K&N</span>
+            </div>
+            <div>
+              <p className="font-semibold text-white text-sm">K&N Admin</p>
+              <p className="text-xs text-zinc-500">Import & Export</p>
+            </div>
+          </div>
+        </div>
+
+        {/* User Info */}
+        {currentUser && (
+          <div className="px-4 py-3 border-b border-zinc-800 bg-zinc-800/30">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400/20 to-green-500/20 flex items-center justify-center">
+                <User className="text-amber-400" size={14} />
               </div>
               <div>
-                <span className="font-semibold block">K&N Admin</span>
-                <span className="text-xs text-zinc-500">Dashboard</span>
+                <p className="text-sm font-medium text-white">{currentUser.username}</p>
+                <p className="text-xs text-zinc-500 capitalize">
+                  {currentUser.role === 'masteradmin' ? 'Master Admin' : 'Administrator'}
+                </p>
               </div>
             </div>
           </div>
-          
-          {/* Current User Info */}
-          {currentUser && (
-            <div className="px-4 py-3 border-b border-border bg-white/5">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                  <User className="text-primary" size={16} />
-                </div>
-                <div>
-                  <p className="text-sm font-medium">{currentUser.username}</p>
-                  <p className="text-xs text-zinc-500 capitalize">
-                    {currentUser.role === 'masteradmin' ? '⭐ Master Admin' : 'Admin'}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-          
-          <nav className="p-4 space-y-1">
-            {sidebarItems.map((item) => (
-              <button
-                key={item.key}
-                onClick={() => setActiveTab(item.key)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
-                  activeTab === item.key 
-                    ? 'bg-primary/10 text-primary' 
-                    : 'text-zinc-400 hover:bg-white/5 hover:text-white'
-                }`}
-                data-testid={`sidebar-${item.key}`}
-              >
-                <item.icon size={20} />
-                {item.label}
-              </button>
-            ))}
-          </nav>
-          
-          <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border">
-            <button
-              onClick={logout}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-zinc-400 hover:bg-white/5 hover:text-white transition-colors"
-              data-testid="logout-btn"
-            >
-              <LogOut size={20} />
-              Logout
-            </button>
-          </div>
-        </aside>
+        )}
 
-        {/* Main Content */}
-        <main className="flex-1 ml-64 p-8">
-          {loading ? (
-            <div className="flex items-center justify-center h-64">
-              <Loader2 className="animate-spin text-primary" size={32} />
-            </div>
-          ) : (
-            <>
-              {/* Dashboard Tab */}
-              {activeTab === 'dashboard' && (
-                <div className="space-y-8">
+        {/* Navigation */}
+        <nav className="flex-1 p-3 space-y-1">
+          {NAV_ITEMS.map((item) => (
+            <button
+              key={item.key}
+              onClick={() => setActiveTab(item.key)}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                activeTab === item.key 
+                  ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' 
+                  : 'text-zinc-400 hover:bg-zinc-800/50 hover:text-white border border-transparent'
+              }`}
+              data-testid={`sidebar-${item.key}`}
+            >
+              <item.icon size={18} />
+              {item.label}
+            </button>
+          ))}
+        </nav>
+
+        {/* Logout */}
+        <div className="p-3 border-t border-zinc-800">
+          <button
+            onClick={logout}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-zinc-400 hover:bg-red-500/10 hover:text-red-400 transition-all"
+            data-testid="logout-btn"
+          >
+            <LogOut size={18} />
+            Sign Out
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 ml-60 p-6">
+        {loading ? (
+          <div className="flex items-center justify-center h-64">
+            <Loader2 className="animate-spin text-amber-400" size={32} />
+          </div>
+        ) : (
+          <>
+            {/* ========== DASHBOARD TAB ========== */}
+            {activeTab === 'dashboard' && (
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
                   <div>
-                    <h1 className="text-3xl font-bold">Dashboard</h1>
-                    <p className="text-zinc-500 mt-1">Overview of your operations</p>
+                    <h1 className="text-2xl font-bold text-white">Dashboard Overview</h1>
+                    <p className="text-zinc-500 text-sm mt-1">Welcome back, {currentUser?.username}</p>
                   </div>
-                  
-                  {/* Stats Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                    {[
-                      { label: 'New Requests', count: counts.new, color: 'text-blue-500' },
-                      { label: 'Contacted', count: counts.contacted, color: 'text-yellow-500' },
-                      { label: 'Quoted', count: counts.quoted, color: 'text-purple-500' },
-                      { label: 'Confirmed', count: counts.confirmed, color: 'text-green-500' },
-                      { label: 'Fulfilled', count: counts.fulfilled, color: 'text-emerald-500' }
-                    ].map((stat) => (
-                      <div key={stat.label} className="glass-strong rounded-2xl p-5">
-                        <p className="text-sm text-zinc-400">{stat.label}</p>
-                        <p className={`text-3xl font-bold mt-1 ${stat.color}`}>{stat.count}</p>
+                  <button onClick={loadData} className="flex items-center gap-2 text-zinc-400 hover:text-white text-sm">
+                    <RefreshCw size={16} /> Refresh
+                  </button>
+                </div>
+
+                {/* Stats Grid */}
+                <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+                  {[
+                    { label: 'New Requests', value: stats.newRequests, color: 'text-blue-400', bg: 'bg-blue-500/10' },
+                    { label: 'In Progress', value: stats.inProgress, color: 'text-amber-400', bg: 'bg-amber-500/10' },
+                    { label: 'Fulfilled', value: stats.fulfilled, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+                    { label: 'Inventory', value: stats.totalInventory, color: 'text-purple-400', bg: 'bg-purple-500/10' },
+                    { label: 'Media Assets', value: stats.totalMedia, color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
+                    { label: 'Hero Images', value: stats.heroImages, color: 'text-pink-400', bg: 'bg-pink-500/10' }
+                  ].map((stat) => (
+                    <div key={stat.label} className={`${stat.bg} border border-zinc-800 rounded-xl p-4`}>
+                      <p className="text-xs text-zinc-400 uppercase tracking-wider">{stat.label}</p>
+                      <p className={`text-3xl font-bold mt-1 ${stat.color}`}>{stat.value}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Recent Requests */}
+                <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
+                  <div className="px-5 py-4 border-b border-zinc-800 flex items-center justify-between">
+                    <h2 className="font-semibold text-white">Recent Requests</h2>
+                    <button onClick={() => setActiveTab('requests')} className="text-amber-400 text-sm hover:underline">
+                      View All
+                    </button>
+                  </div>
+                  <div className="divide-y divide-zinc-800">
+                    {requests.slice(0, 5).map((req) => (
+                      <div key={req.id} className="px-5 py-4 hover:bg-zinc-800/30 transition-colors flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-white">{req.business_name}</p>
+                          <p className="text-sm text-zinc-500">{req.reference_id} • {req.request_type}</p>
+                        </div>
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${STATUS_STYLES[req.status]?.bg} ${STATUS_STYLES[req.status]?.text}`}>
+                          {req.status}
+                        </span>
                       </div>
                     ))}
-                  </div>
-
-                  {/* Quick Stats */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="glass-strong rounded-2xl p-5">
-                      <p className="text-sm text-zinc-400">Total Inventory Items</p>
-                      <p className="text-3xl font-bold mt-1 text-primary">{inventory.length}</p>
-                    </div>
-                    <div className="glass-strong rounded-2xl p-5">
-                      <p className="text-sm text-zinc-400">Media Assets</p>
-                      <p className="text-3xl font-bold mt-1 text-secondary">{media.length}</p>
-                    </div>
-                    <div className="glass-strong rounded-2xl p-5">
-                      <p className="text-sm text-zinc-400">Hero Images</p>
-                      <p className="text-3xl font-bold mt-1 text-yellow-500">{media.filter(m => m.category === 'hero').length}</p>
-                    </div>
-                  </div>
-
-                  {/* Recent Requests */}
-                  <div className="glass-strong rounded-2xl overflow-hidden">
-                    <div className="p-6 border-b border-white/5">
-                      <h2 className="text-xl font-semibold">Recent Requests</h2>
-                    </div>
-                    <div className="divide-y divide-white/5">
-                      {requests.slice(0, 5).map((req) => (
-                        <div key={req.id} className="p-6 hover:bg-white/[0.02] transition-colors">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="font-medium">{req.business_name}</p>
-                              <p className="text-sm text-zinc-500">{req.reference_id} · {req.request_type}</p>
-                            </div>
-                            <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase border ${statusColors[req.status]}`}>
-                              {req.status}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                      {requests.length === 0 && (
-                        <div className="p-6 text-center text-zinc-500">No requests yet</div>
-                      )}
-                    </div>
+                    {requests.length === 0 && (
+                      <p className="px-5 py-8 text-center text-zinc-500">No requests yet</p>
+                    )}
                   </div>
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* Requests Tab */}
-              {activeTab === 'requests' && (
-                <div className="space-y-8">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h1 className="text-3xl font-bold">Requests Pipeline</h1>
-                      <p className="text-zinc-500 mt-1">Manage customer requests</p>
-                    </div>
-                  </div>
+            {/* ========== REQUESTS TAB ========== */}
+            {activeTab === 'requests' && (
+              <div className="space-y-6">
+                <div>
+                  <h1 className="text-2xl font-bold text-white">Request Pipeline</h1>
+                  <p className="text-zinc-500 text-sm mt-1">Manage and track customer requests</p>
+                </div>
 
-                  {/* Pipeline Board */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-                    {statuses.map((status) => (
-                      <div key={status} className="glass-strong rounded-2xl overflow-hidden">
-                        <div className="p-4 border-b border-white/5 flex items-center justify-between">
-                          <span className="font-mono text-xs uppercase tracking-wider">{status}</span>
-                          <span className="text-xs bg-white/10 px-2 py-1 rounded-full">
-                            {requests.filter((r) => r.status === status).length}
-                          </span>
+                <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+                  {REQUEST_STATUSES.map((status) => {
+                    const items = requests.filter(r => r.status === status);
+                    const style = STATUS_STYLES[status];
+                    return (
+                      <div key={status} className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
+                        <div className={`px-4 py-3 border-b border-zinc-800 ${style.bg}`}>
+                          <div className="flex items-center justify-between">
+                            <span className={`text-xs font-semibold uppercase tracking-wider ${style.text}`}>{status}</span>
+                            <span className="text-xs bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-full">{items.length}</span>
+                          </div>
                         </div>
-                        <div className="p-3 space-y-2 max-h-[500px] overflow-y-auto">
-                          {requests.filter((r) => r.status === status).map((req) => (
+                        <div className="p-2 max-h-[400px] overflow-y-auto space-y-2">
+                          {items.map((req) => (
                             <button
                               key={req.id}
                               onClick={() => setSelectedRequest(req)}
-                              className="w-full text-left p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
+                              className="w-full text-left p-3 rounded-lg bg-zinc-800/50 hover:bg-zinc-800 transition-colors"
                             >
-                              <p className="font-medium text-sm truncate">{req.business_name}</p>
+                              <p className="font-medium text-white text-sm truncate">{req.business_name}</p>
                               <p className="text-xs text-zinc-500 mt-1">{req.reference_id}</p>
-                              <p className="text-xs text-zinc-600 capitalize">{req.request_type}</p>
                             </button>
                           ))}
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    );
+                  })}
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* Inventory Tab */}
-              {activeTab === 'inventory' && (
-                <div className="space-y-8">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h1 className="text-3xl font-bold">Inventory Manager</h1>
-                      <p className="text-zinc-500 mt-1">Manage your produce catalog</p>
-                    </div>
-                  </div>
-
-                  {/* Add Item Form */}
-                  <div className="glass-strong rounded-2xl p-6">
-                    <h3 className="font-semibold mb-4">Add New Item</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                      <input
-                        className="input md:col-span-2"
-                        placeholder="Item name"
-                        value={newItem.name}
-                        onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
-                        data-testid="inventory-name-input"
-                      />
-                      <select
-                        className="input"
-                        value={newItem.status}
-                        onChange={(e) => setNewItem({ ...newItem, status: e.target.value })}
-                        data-testid="inventory-status-select"
-                      >
-                        <option value="available_now">Available Now</option>
-                        <option value="next_container">Next Container</option>
-                        <option value="seasonal_limited">Seasonal / Limited</option>
-                      </select>
-                      <input
-                        className="input"
-                        placeholder="Unit (e.g., per box)"
-                        value={newItem.unit_label}
-                        onChange={(e) => setNewItem({ ...newItem, unit_label: e.target.value })}
-                      />
-                      <button
-                        onClick={addInventoryItem}
-                        className="btn-primary flex items-center justify-center gap-2"
-                        data-testid="add-inventory-btn"
-                      >
-                        <Plus size={18} /> Add
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Inventory List */}
-                  <div className="glass-strong rounded-2xl overflow-hidden">
-                    <div className="grid grid-cols-12 gap-4 px-6 py-4 border-b border-white/5 text-xs font-mono uppercase tracking-wider text-zinc-500">
-                      <div className="col-span-4">Name</div>
-                      <div className="col-span-3">Status</div>
-                      <div className="col-span-3">Unit</div>
-                      <div className="col-span-2">Actions</div>
-                    </div>
-                    {inventory.map((item) => (
-                      <div key={item.id} className="grid grid-cols-12 gap-4 px-6 py-4 border-b border-white/5 items-center hover:bg-white/[0.02]">
-                        <div className="col-span-4 font-medium">{item.name}</div>
-                        <div className="col-span-3">
-                          <span className={
-                            item.status === 'available_now' ? 'badge-available' :
-                            item.status === 'next_container' ? 'badge-coming' : 'badge-limited'
-                          }>
-                            {item.status?.replace('_', ' ') || 'unknown'}
-                          </span>
-                        </div>
-                        <div className="col-span-3 text-zinc-400">{item.unit_label || '—'}</div>
-                        <div className="col-span-2 flex gap-2">
-                          <button 
-                            onClick={() => deleteInventoryItem(item.id)}
-                            className="text-red-400 hover:text-red-300 p-1"
-                            data-testid={`delete-inventory-${item.id}`}
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                    {inventory.length === 0 && (
-                      <div className="px-6 py-12 text-center text-zinc-500">
-                        No inventory items yet. Add your first item above.
-                      </div>
-                    )}
-                  </div>
+            {/* ========== INVENTORY TAB ========== */}
+            {activeTab === 'inventory' && (
+              <div className="space-y-6">
+                <div>
+                  <h1 className="text-2xl font-bold text-white">Inventory Manager</h1>
+                  <p className="text-zinc-500 text-sm mt-1">Manage your product catalog</p>
                 </div>
-              )}
 
-              {/* Media Tab */}
-              {activeTab === 'media' && (
-                <div className="space-y-8">
-                  <div className="flex items-center justify-between flex-wrap gap-4">
-                    <div>
-                      <h1 className="text-3xl font-bold">Media Gallery</h1>
-                      <p className="text-zinc-500 mt-1">Manage images stored in Supabase</p>
-                    </div>
-                  </div>
-
-                  {/* Upload Section */}
-                  <div className="glass-strong rounded-2xl p-6">
-                    <h3 className="font-semibold mb-4">Upload Media to Supabase Storage</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                      <div>
-                        <label className="input-label">Category</label>
-                        <select
-                          className="input"
-                          value={uploadCategory}
-                          onChange={(e) => setUploadCategory(e.target.value)}
-                          data-testid="upload-category-select"
-                        >
-                          {mediaCategories.map((cat) => (
-                            <option key={cat.value} value={cat.value}>
-                              {cat.label} - {cat.desc}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="input-label">Tag</label>
-                        <select
-                          className="input"
-                          value={uploadTag}
-                          onChange={(e) => setUploadTag(e.target.value)}
-                          data-testid="upload-tag-select"
-                        >
-                          {mediaTags.map((tag) => (
-                            <option key={tag} value={tag}>{tag.replace('_', ' ')}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="md:col-span-2">
-                        <label className="btn-primary cursor-pointer inline-flex items-center gap-2 w-full justify-center">
-                          {uploading ? <Loader2 className="animate-spin" size={18} /> : <Upload size={18} />}
-                          {uploading ? 'Uploading...' : 'Choose Files to Upload'}
-                          <input 
-                            type="file" 
-                            className="hidden" 
-                            accept="image/*,video/*" 
-                            onChange={handleMediaUpload} 
-                            disabled={uploading}
-                            multiple
-                            data-testid="file-upload-input"
-                          />
-                        </label>
-                      </div>
-                    </div>
-                    <p className="text-xs text-zinc-500 mt-3">
-                      Supported: Images (JPG, PNG, WebP) and Videos (MP4). Max 10MB per file.
-                    </p>
-                  </div>
-
-                  {/* Filter */}
-                  <div className="flex gap-2 flex-wrap">
-                    <button
-                      onClick={() => setMediaFilter('all')}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                        mediaFilter === 'all' ? 'bg-primary text-black' : 'bg-white/10 text-white hover:bg-white/20'
-                      }`}
+                {/* Add Form */}
+                <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5">
+                  <h3 className="font-medium text-white mb-4">Add New Product</h3>
+                  <div className="flex flex-wrap gap-3">
+                    <input
+                      className="flex-1 min-w-[200px] bg-zinc-800/50 border border-zinc-700 rounded-lg px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500/50"
+                      placeholder="Product name (e.g. Fresh Mangoes)"
+                      value={newItem.name}
+                      onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
+                      onKeyDown={(e) => e.key === 'Enter' && addInventoryItem()}
+                      data-testid="inventory-name-input"
+                    />
+                    <select
+                      className="bg-zinc-800/50 border border-zinc-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-amber-500/50"
+                      value={newItem.status}
+                      onChange={(e) => setNewItem({ ...newItem, status: e.target.value })}
+                      data-testid="inventory-status-select"
                     >
-                      All ({media.length})
+                      <option value="available_now">Available Now</option>
+                      <option value="next_container">Next Container</option>
+                      <option value="seasonal_limited">Limited / Seasonal</option>
+                    </select>
+                    <input
+                      className="w-32 bg-zinc-800/50 border border-zinc-700 rounded-lg px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500/50"
+                      placeholder="Unit"
+                      value={newItem.unit_label}
+                      onChange={(e) => setNewItem({ ...newItem, unit_label: e.target.value })}
+                    />
+                    <button
+                      onClick={addInventoryItem}
+                      disabled={!newItem.name.trim()}
+                      className="bg-gradient-to-r from-amber-500 to-green-500 text-black font-semibold px-5 py-2.5 rounded-lg hover:opacity-90 disabled:opacity-50 flex items-center gap-2"
+                      data-testid="add-inventory-btn"
+                    >
+                      <Plus size={18} /> Add
                     </button>
-                    {mediaCategories.map((cat) => {
-                      const count = media.filter(m => m.category === cat.value).length;
-                      return (
-                        <button
-                          key={cat.value}
-                          onClick={() => setMediaFilter(cat.value)}
-                          className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                            mediaFilter === cat.value ? 'bg-primary text-black' : 'bg-white/10 text-white hover:bg-white/20'
-                          }`}
-                        >
-                          {cat.label} ({count})
-                        </button>
-                      );
-                    })}
                   </div>
+                </div>
 
-                  {/* Media Grid */}
+                {/* List */}
+                <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-zinc-800">
+                        <th className="text-left px-5 py-3 text-xs font-medium text-zinc-400 uppercase tracking-wider">Product</th>
+                        <th className="text-left px-5 py-3 text-xs font-medium text-zinc-400 uppercase tracking-wider">Status</th>
+                        <th className="text-left px-5 py-3 text-xs font-medium text-zinc-400 uppercase tracking-wider">Unit</th>
+                        <th className="text-right px-5 py-3 text-xs font-medium text-zinc-400 uppercase tracking-wider">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-800">
+                      {inventory.map((item) => (
+                        <tr key={item.id} className="hover:bg-zinc-800/30 transition-colors">
+                          <td className="px-5 py-4 font-medium text-white">{item.name}</td>
+                          <td className="px-5 py-4">
+                            <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${
+                              item.status === 'available_now' ? 'bg-emerald-500/15 text-emerald-400' :
+                              item.status === 'next_container' ? 'bg-amber-500/15 text-amber-400' :
+                              'bg-red-500/15 text-red-400'
+                            }`}>
+                              {item.status?.replace(/_/g, ' ')}
+                            </span>
+                          </td>
+                          <td className="px-5 py-4 text-zinc-400">{item.unit_label || '—'}</td>
+                          <td className="px-5 py-4 text-right">
+                            <button onClick={() => deleteInventoryItem(item.id)} className="text-red-400 hover:text-red-300 p-2">
+                              <Trash2 size={16} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {inventory.length === 0 && (
+                    <p className="px-5 py-12 text-center text-zinc-500">No inventory items yet. Add your first product above.</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* ========== MEDIA TAB ========== */}
+            {activeTab === 'media' && (
+              <div className="space-y-6">
+                <div>
+                  <h1 className="text-2xl font-bold text-white">Media Library</h1>
+                  <p className="text-zinc-500 text-sm mt-1">Upload and manage images for your website</p>
+                </div>
+
+                {/* Upload Zone */}
+                <div
+                  className={`border-2 border-dashed rounded-xl p-8 text-center transition-all ${
+                    dragOver 
+                      ? 'border-amber-500 bg-amber-500/10' 
+                      : 'border-zinc-700 bg-zinc-900/50 hover:border-zinc-600'
+                  }`}
+                  onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                  onDragLeave={() => setDragOver(false)}
+                  onDrop={handleDrop}
+                >
+                  <div className="max-w-md mx-auto">
+                    <div className="w-16 h-16 rounded-full bg-zinc-800 flex items-center justify-center mx-auto mb-4">
+                      {uploading ? <Loader2 className="animate-spin text-amber-400" size={28} /> : <ImagePlus className="text-zinc-400" size={28} />}
+                    </div>
+                    <p className="text-white font-medium mb-1">
+                      {uploading ? 'Uploading...' : 'Drag & drop images here'}
+                    </p>
+                    <p className="text-zinc-500 text-sm mb-4">or click to browse files</p>
+                    
+                    <div className="flex items-center justify-center gap-3 flex-wrap">
+                      <select
+                        className="bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-white text-sm focus:outline-none focus:border-amber-500/50"
+                        value={uploadCategory}
+                        onChange={(e) => setUploadCategory(e.target.value)}
+                        data-testid="upload-category-select"
+                      >
+                        {MEDIA_CATEGORIES.map((cat) => (
+                          <option key={cat.value} value={cat.value}>{cat.icon} {cat.label}</option>
+                        ))}
+                      </select>
+                      
+                      <label className={`inline-flex items-center gap-2 px-5 py-2 rounded-lg font-medium cursor-pointer transition-all ${
+                        uploading 
+                          ? 'bg-zinc-700 text-zinc-400 cursor-not-allowed' 
+                          : 'bg-gradient-to-r from-amber-500 to-green-500 text-black hover:opacity-90'
+                      }`}>
+                        <Upload size={18} />
+                        {uploading ? 'Uploading...' : 'Select Files'}
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept="image/*"
+                          multiple
+                          onChange={(e) => handleFileUpload(Array.from(e.target.files))}
+                          disabled={uploading}
+                          data-testid="file-upload-input"
+                        />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Category Filter */}
+                <div className="flex gap-2 flex-wrap">
+                  <button
+                    onClick={() => setMediaFilter('all')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      mediaFilter === 'all' 
+                        ? 'bg-amber-500 text-black' 
+                        : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                    }`}
+                  >
+                    All ({media.length})
+                  </button>
+                  {MEDIA_CATEGORIES.map((cat) => {
+                    const count = media.filter(m => m.category === cat.value).length;
+                    return (
+                      <button
+                        key={cat.value}
+                        onClick={() => setMediaFilter(cat.value)}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                          mediaFilter === cat.value 
+                            ? 'bg-amber-500 text-black' 
+                            : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                        }`}
+                      >
+                        {cat.icon} {cat.label} ({count})
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Media Grid */}
+                {filteredMedia.length > 0 ? (
                   <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                     {filteredMedia.map((asset) => (
-                      <div key={asset.id} className="group relative aspect-square rounded-xl overflow-hidden bg-zinc-900">
-                        <img 
-                          src={asset.url} 
-                          alt={asset.tag || 'media'} 
+                      <div key={asset.id} className="group relative aspect-square rounded-xl overflow-hidden bg-zinc-800">
+                        <img
+                          src={asset.url}
+                          alt=""
                           className="w-full h-full object-cover"
-                          onError={(e) => {
-                            e.target.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%23333" width="100" height="100"/><text fill="%23666" x="50%" y="50%" text-anchor="middle" dy=".3em" font-size="12">No Image</text></svg>';
-                          }}
+                          onError={(e) => { e.target.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="%23333" width="100" height="100"/><text fill="%23666" x="50" y="55" text-anchor="middle" font-size="12">Error</text></svg>'; }}
                         />
-                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                           <button
                             onClick={() => deleteMediaItem(asset.id)}
-                            className="p-2 bg-red-500/20 rounded-lg hover:bg-red-500/40 transition-colors"
-                            data-testid={`delete-media-${asset.id}`}
+                            className="p-3 bg-red-500/20 hover:bg-red-500/40 rounded-full transition-colors"
                           >
                             <Trash2 className="text-red-400" size={20} />
                           </button>
                         </div>
                         <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent">
-                          <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded">
+                          <span className="text-xs bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded">
                             {asset.category || 'gallery'}
                           </span>
-                          {asset.tag && asset.tag !== asset.category && (
-                            <span className="text-xs bg-white/10 px-2 py-0.5 rounded ml-1">
-                              {asset.tag}
-                            </span>
-                          )}
                         </div>
                       </div>
                     ))}
                   </div>
-
-                  {filteredMedia.length === 0 && (
-                    <div className="glass-strong rounded-2xl p-12 text-center">
-                      <Image className="mx-auto text-zinc-600 mb-4" size={48} />
-                      <p className="text-zinc-500">No media assets in this category yet.</p>
-                      <p className="text-zinc-600 text-sm mt-2">Upload images using the form above.</p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </>
-          )}
-        </main>
-      </div>
+                ) : (
+                  <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-12 text-center">
+                    <Image className="mx-auto text-zinc-600 mb-4" size={48} />
+                    <p className="text-zinc-400 font-medium">No media in this category</p>
+                    <p className="text-zinc-600 text-sm mt-1">Upload images using the form above</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        )}
+      </main>
 
       {/* Request Detail Modal */}
       <AnimatePresence>
@@ -697,77 +736,69 @@ export function AdminDashboard() {
               initial={{ scale: 0.95 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0.95 }}
-              className="w-full max-w-2xl glass-strong rounded-2xl overflow-hidden"
+              className="w-full max-w-lg bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="p-6 border-b border-white/5 flex items-center justify-between">
+              <div className="p-5 border-b border-zinc-800 flex items-center justify-between">
                 <div>
-                  <p className="font-mono text-xs text-primary">{selectedRequest.reference_id}</p>
-                  <h2 className="text-xl font-bold mt-1">{selectedRequest.business_name}</h2>
+                  <p className="text-amber-400 text-xs font-mono">{selectedRequest.reference_id}</p>
+                  <h2 className="text-lg font-semibold text-white mt-1">{selectedRequest.business_name}</h2>
                 </div>
-                <button onClick={() => setSelectedRequest(null)} className="p-2 hover:bg-white/10 rounded-lg">
+                <button onClick={() => setSelectedRequest(null)} className="p-2 hover:bg-zinc-800 rounded-lg text-zinc-400">
                   <X size={20} />
                 </button>
               </div>
               
-              <div className="p-6 space-y-6">
+              <div className="p-5 space-y-4">
                 <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 text-zinc-300">
                     <Building className="text-zinc-500" size={16} />
-                    <span>{selectedRequest.business_type || 'Not specified'}</span>
+                    {selectedRequest.business_type || 'Not specified'}
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 text-zinc-300">
                     <Phone className="text-zinc-500" size={16} />
-                    <span>{selectedRequest.phone_whatsapp}</span>
+                    {selectedRequest.phone_whatsapp}
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 text-zinc-300">
                     <Mail className="text-zinc-500" size={16} />
-                    <span>{selectedRequest.email || 'No email'}</span>
+                    {selectedRequest.email || 'No email'}
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 text-zinc-300">
                     <Clock className="text-zinc-500" size={16} />
-                    <span className="capitalize">{selectedRequest.urgency?.replace('_', '-') || 'Normal'}</span>
+                    {selectedRequest.urgency?.replace(/_/g, ' ') || 'Normal'}
                   </div>
                 </div>
 
                 {selectedRequest.notes && (
-                  <div className="bg-white/5 rounded-xl p-4">
-                    <p className="text-xs text-zinc-500 uppercase tracking-wider mb-2">Notes</p>
-                    <p className="text-sm">{selectedRequest.notes}</p>
-                  </div>
-                )}
-
-                {selectedRequest.request_items?.length > 0 && (
-                  <div className="bg-white/5 rounded-xl p-4">
-                    <p className="text-xs text-zinc-500 uppercase tracking-wider mb-2">Requested Items</p>
-                    {selectedRequest.request_items.map((item, idx) => (
-                      <div key={idx} className="flex justify-between text-sm py-1">
-                        <span>{item.custom_item_name || `Item ${idx + 1}`}</span>
-                        <span className="text-zinc-400">× {item.quantity} {item.unit_label || ''}</span>
-                      </div>
-                    ))}
+                  <div className="bg-zinc-800/50 rounded-lg p-3">
+                    <p className="text-xs text-zinc-500 uppercase mb-1">Notes</p>
+                    <p className="text-sm text-zinc-300">{selectedRequest.notes}</p>
                   </div>
                 )}
 
                 <div>
-                  <p className="text-xs text-zinc-500 uppercase tracking-wider mb-3">Update Status</p>
+                  <p className="text-xs text-zinc-500 uppercase mb-2">Update Status</p>
                   <div className="flex flex-wrap gap-2">
-                    {statuses.map((status) => (
-                      <button
-                        key={status}
-                        onClick={() => {
-                          updateRequestStatus(selectedRequest.id, status);
-                          setSelectedRequest(null);
-                        }}
-                        className={`px-4 py-2 rounded-lg text-xs font-bold uppercase border transition-colors ${
-                          selectedRequest.status === status 
-                            ? statusColors[status] 
-                            : 'border-white/10 text-zinc-400 hover:border-white/20'
-                        }`}
-                      >
-                        {status}
-                      </button>
-                    ))}
+                    {REQUEST_STATUSES.map((status) => {
+                      const style = STATUS_STYLES[status];
+                      const isActive = selectedRequest.status === status;
+                      return (
+                        <button
+                          key={status}
+                          onClick={() => {
+                            updateRequestStatus(selectedRequest.id, status);
+                            setSelectedRequest(null);
+                          }}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                            isActive 
+                              ? `${style.bg} ${style.text} ${style.border}` 
+                              : 'border-zinc-700 text-zinc-400 hover:border-zinc-600'
+                          }`}
+                        >
+                          {status}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               </div>

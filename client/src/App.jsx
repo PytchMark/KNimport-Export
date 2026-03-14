@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { MessageCircle } from 'lucide-react';
 import Navbar from './components/Navbar';
@@ -80,7 +80,32 @@ function Footer() {
   );
 }
 
-export default function App() {
+// Main site layout with navbar and footer
+function MainLayout({ children }) {
+  return (
+    <div className="min-h-screen flex flex-col app-shell">
+      <Navbar />
+      <a 
+        href="https://wa.me/17728009570" 
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-green-500 hover:bg-green-600 
+                   text-white font-semibold px-5 py-3 rounded-full shadow-lg shadow-green-500/25 
+                   transition-all hover:scale-105 group"
+        data-testid="whatsapp-floating-btn"
+      >
+        <MessageCircle size={22} fill="white" />
+        <span className="hidden sm:inline">WhatsApp</span>
+      </a>
+      <main className="flex-1">{children}</main>
+      <Footer />
+    </div>
+  );
+}
+
+function AppRoutes() {
+  const location = useLocation();
+  const isAdmin = location.pathname.startsWith('/admin');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -88,55 +113,49 @@ export default function App() {
     return () => clearTimeout(timer);
   }, []);
 
+  // Admin routes - no navbar/footer
+  if (isAdmin) {
+    return (
+      <Routes>
+        <Route path="/admin" element={<AdminLogin />} />
+        <Route path="/admin/dashboard" element={<Protected><AdminDashboard /></Protected>} />
+      </Routes>
+    );
+  }
+
+  // Main site routes
+  return (
+    <>
+      {loading && (
+        <div className="loading-screen" role="status" aria-live="polite">
+          <div className="loading-spinner" />
+          <p className="font-mono text-xs uppercase tracking-[0.35em] text-green-300">Loading Fresh Supply</p>
+        </div>
+      )}
+      <MainLayout>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/reserve" element={<Reserve />} />
+          <Route path="/restock" element={<Restock />} />
+          <Route path="/availability" element={<Availability />} />
+          <Route path="/how-it-works" element={<HowItWorks />} />
+          <Route path="/quality" element={<Quality />} />
+          <Route path="/supply-guarantee" element={<SupplyGuarantee />} />
+          <Route path="/proof-wall" element={<ProofWall />} />
+          <Route path="/products" element={<Products />} />
+          <Route path="/farmers" element={<Farmers />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/thanks/:referenceId" element={<Thanks />} />
+        </Routes>
+      </MainLayout>
+    </>
+  );
+}
+
+export default function App() {
   return (
     <BrowserRouter>
-      <div className="min-h-screen flex flex-col app-shell">
-        {loading && (
-          <div className="loading-screen" role="status" aria-live="polite">
-            <div className="loading-spinner" />
-            <p className="font-mono text-xs uppercase tracking-[0.35em] text-green-300">Loading Fresh Supply</p>
-          </div>
-        )}
-        <Navbar />
-        
-        {/* WhatsApp Floating Button */}
-        <a 
-          href="https://wa.me/17728009570" 
-          target="_blank"
-          rel="noopener noreferrer"
-          className="fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-green-500 hover:bg-green-600 
-                     text-white font-semibold px-5 py-3 rounded-full shadow-lg shadow-green-500/25 
-                     transition-all hover:scale-105 group"
-          data-testid="whatsapp-floating-btn"
-        >
-          <MessageCircle size={22} fill="white" />
-          <span className="hidden sm:inline">WhatsApp</span>
-        </a>
-        
-        <main className="flex-1">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/reserve" element={<Reserve />} />
-            <Route path="/restock" element={<Restock />} />
-            <Route path="/availability" element={<Availability />} />
-            <Route path="/how-it-works" element={<HowItWorks />} />
-            <Route path="/quality" element={<Quality />} />
-            <Route path="/supply-guarantee" element={<SupplyGuarantee />} />
-            <Route path="/proof-wall" element={<ProofWall />} />
-            <Route path="/products" element={<Products />} />
-            <Route path="/farmers" element={<Farmers />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/thanks/:referenceId" element={<Thanks />} />
-            <Route path="/admin" element={<AdminLogin />} />
-            <Route path="/admin/dashboard" element={<Protected><AdminDashboard /></Protected>} />
-          </Routes>
-        </main>
-        
-        <Routes>
-          <Route path="/admin/*" element={null} />
-          <Route path="*" element={<Footer />} />
-        </Routes>
-      </div>
+      <AppRoutes />
     </BrowserRouter>
   );
 }
