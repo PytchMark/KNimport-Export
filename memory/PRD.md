@@ -25,22 +25,22 @@ Caribbean wholesale produce distribution platform with admin portal for inventor
 - **Clean Layout**: Admin routes separated from main site (no navbar/footer)
 - **Professional Design**: Dark theme with amber/green accent colors
 - **Dashboard Overview**: Stats cards, recent requests, quick navigation
-- **Request Pipeline**: Kanban-style board with status columns (new, contacted, quoted, confirmed, fulfilled, archived)
-- **Inventory Manager**: Add/delete products with status badges
+- **Request Pipeline**: Kanban-style board with status columns
+- **Inventory Manager**: Add/edit/delete products with inline editing
 - **Media Library**: Drag-drop upload zone with category selector
+- **User-friendly copy**: All technical/dev text removed
+
+### Inline Editing for Inventory ✅
+- Edit/delete buttons appear on row hover
+- Click edit to enable inline editing for name, status, unit
+- Save/Cancel buttons to commit or discard changes
+- Success notifications on save
 
 ### Simplified Authentication ✅
 - 3 hardcoded admin accounts in .env file
 - JWT-based token authentication (24hr expiry)
 - No external auth dependency
-- Clean login page with user icon
-
-### UI Features ✅
-- Notification toasts for success/error messages
-- User info displayed in sidebar with role badge
-- Category filter buttons with counts
-- Responsive stat cards with color coding
-- Delete confirmations for destructive actions
+- Clean login page
 
 ### Cloudinary to Supabase Migration ✅
 - Removed Cloudinary dependency
