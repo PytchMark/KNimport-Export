@@ -22,6 +22,17 @@ const Protected = ({ children }) => (
   localStorage.getItem('admin_token') ? children : <Navigate to="/admin" replace />
 );
 
+// Scroll to top on route change
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  
+  return null;
+}
+
 function Footer() {
   return (
     <footer className="border-t border-border bg-background-paper/50 py-12 mt-20">
@@ -155,6 +166,7 @@ function AppRoutes() {
 export default function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <AppRoutes />
     </BrowserRouter>
   );
