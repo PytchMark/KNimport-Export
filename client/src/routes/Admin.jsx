@@ -4,8 +4,11 @@ import { api } from '../api/client';
 import { 
   LayoutDashboard, Package, Image, LogOut, Plus, Trash2, X,
   Clock, Phone, Mail, Building, Loader2, User, Upload, Check,
-  AlertCircle, RefreshCw, Eye, EyeOff, ChevronDown, ImagePlus, Edit2
+  AlertCircle, RefreshCw, Eye, EyeOff, ChevronDown, ImagePlus, Edit2, Camera
 } from 'lucide-react';
+
+// Logo URL
+const LOGO_URL = 'https://res.cloudinary.com/dd8pjjxsm/image/upload/v1772750565/IMG-20260224-WA0029_z9koiq.jpg';
 
 // Status configuration
 const REQUEST_STATUSES = ['new', 'contacted', 'quoted', 'confirmed', 'fulfilled', 'archived'];
@@ -79,9 +82,11 @@ export function AdminLogin() {
       >
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-amber-400 to-green-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-amber-500/20">
-            <span className="font-serif font-bold text-black text-xl">K&N</span>
-          </div>
+          <img 
+            src={LOGO_URL} 
+            alt="K&N Import & Export" 
+            className="w-20 h-20 rounded-2xl object-cover mx-auto mb-4 shadow-lg shadow-amber-500/20 border-2 border-amber-500/30"
+          />
           <h1 className="text-xl font-semibold text-white">Admin Portal</h1>
           <p className="text-zinc-500 text-sm mt-1">K&N Import & Export</p>
         </div>
@@ -159,9 +164,10 @@ export function AdminDashboard() {
   const [notification, setNotification] = useState(null);
   
   // Forms
-  const [newItem, setNewItem] = useState({ name: '', status: 'available_now', unit_label: 'per box' });
+  const [newItem, setNewItem] = useState({ name: '', status: 'available_now', unit_label: 'per box', image_url: '' });
   const [editingItem, setEditingItem] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadingItemImage, setUploadingItemImage] = useState(false);
   const [uploadCategory, setUploadCategory] = useState('gallery');
   const [mediaFilter, setMediaFilter] = useState('all');
   const [dragOver, setDragOver] = useState(false);
@@ -233,8 +239,13 @@ export function AdminDashboard() {
   const addInventoryItem = async () => {
     if (!newItem.name.trim()) return;
     try {
-      await api.createInventory(newItem, token);
-      setNewItem({ name: '', status: 'available_now', unit_label: 'per box' });
+      await api.createInventory({
+        name: newItem.name,
+        status: newItem.status,
+        unit_label: newItem.unit_label,
+        image_url: newItem.image_url || null
+      }, token);
+      setNewItem({ name: '', status: 'available_now', unit_label: 'per box', image_url: '' });
       showNotification('Item added to inventory');
       loadData();
     } catch (err) {
@@ -259,13 +270,52 @@ export function AdminDashboard() {
       await api.updateInventory(editingItem.id, {
         name: editingItem.name,
         status: editingItem.status,
-        unit_label: editingItem.unit_label
+        unit_label: editingItem.unit_label,
+        image_url: editingItem.image_url
       }, token);
       showNotification('Item updated');
       setEditingItem(null);
       loadData();
     } catch (err) {
       showNotification(err.message, 'error');
+    }
+  };
+
+  // Upload image for inventory item
+  const uploadInventoryImage = async (file, forNewItem = true) => {
+    if (!file) return;
+    setUploadingItemImage(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('category', 'inventory');
+      formData.append('tag', 'inventory');
+      
+      const res = await fetch('/api/admin/media/upload', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
+      
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Upload failed');
+      }
+      
+      const data = await res.json();
+      const imageUrl = data.asset?.url;
+      
+      if (forNewItem) {
+        setNewItem(prev => ({ ...prev, image_url: imageUrl }));
+      } else if (editingItem) {
+        setEditingItem(prev => ({ ...prev, image_url: imageUrl }));
+      }
+      
+      showNotification('Image uploaded');
+    } catch (err) {
+      showNotification(err.message, 'error');
+    } finally {
+      setUploadingItemImage(false);
     }
   };
 
@@ -356,9 +406,11 @@ export function AdminDashboard() {
         {/* Logo */}
         <div className="p-5 border-b border-zinc-800">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-400 to-green-500 flex items-center justify-center">
-              <span className="font-serif font-bold text-black text-sm">K&N</span>
-            </div>
+            <img 
+              src={LOGO_URL} 
+              alt="K&N" 
+              className="w-10 h-10 rounded-lg object-cover border border-amber-500/30"
+            />
             <div>
               <p className="font-semibold text-white text-sm">K&N Admin</p>
               <p className="text-xs text-zinc-500">Import & Export</p>
@@ -531,9 +583,43 @@ export function AdminDashboard() {
                 {/* Add Form */}
                 <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5">
                   <h3 className="font-medium text-white mb-4">Add New Product</h3>
-                  <div className="flex flex-wrap gap-3">
+                  <div className="flex flex-wrap gap-4 items-end">
+                    {/* Image Upload */}
+                    <div className="flex-shrink-0">
+                      <label className="block text-xs text-zinc-400 mb-2">Product Image</label>
+                      <label className="relative cursor-pointer group">
+                        <div className={`w-20 h-20 rounded-xl border-2 border-dashed flex items-center justify-center overflow-hidden transition-all ${
+                          newItem.image_url ? 'border-amber-500/50' : 'border-zinc-700 hover:border-zinc-500'
+                        }`}>
+                          {uploadingItemImage ? (
+                            <Loader2 className="animate-spin text-amber-400" size={24} />
+                          ) : newItem.image_url ? (
+                            <img src={newItem.image_url} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <Camera className="text-zinc-500 group-hover:text-zinc-400" size={24} />
+                          )}
+                        </div>
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept="image/*"
+                          onChange={(e) => e.target.files?.[0] && uploadInventoryImage(e.target.files[0], true)}
+                          disabled={uploadingItemImage}
+                        />
+                        {newItem.image_url && (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.preventDefault(); setNewItem(prev => ({ ...prev, image_url: '' })); }}
+                            className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center"
+                          >
+                            <X size={12} className="text-white" />
+                          </button>
+                        )}
+                      </label>
+                    </div>
+                    
                     <input
-                      className="flex-1 min-w-[200px] bg-zinc-800/50 border border-zinc-700 rounded-lg px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500/50"
+                      className="flex-1 min-w-[180px] bg-zinc-800/50 border border-zinc-700 rounded-lg px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500/50"
                       placeholder="Product name (e.g. Fresh Mangoes)"
                       value={newItem.name}
                       onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
@@ -551,13 +637,16 @@ export function AdminDashboard() {
                       <option value="seasonal_limited">Limited / Seasonal</option>
                     </select>
                     <input
-                      className="w-32 bg-zinc-800/50 border border-zinc-700 rounded-lg px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500/50"
+                      className="w-28 bg-zinc-800/50 border border-zinc-700 rounded-lg px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:border-amber-500/50"
                       placeholder="Unit"
                       value={newItem.unit_label}
                       onChange={(e) => setNewItem({ ...newItem, unit_label: e.target.value })}
                     />
                     <button
-                      onClick={addInventoryItem}
+                      onClick={() => {
+                        addInventoryItem();
+                        setNewItem({ name: '', status: 'available_now', unit_label: 'per box', image_url: '' });
+                      }}
                       disabled={!newItem.name.trim()}
                       className="bg-gradient-to-r from-amber-500 to-green-500 text-black font-semibold px-5 py-2.5 rounded-lg hover:opacity-90 disabled:opacity-50 flex items-center gap-2"
                       data-testid="add-inventory-btn"
@@ -572,6 +661,7 @@ export function AdminDashboard() {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-zinc-800">
+                        <th className="text-left px-5 py-3 text-xs font-medium text-zinc-400 uppercase tracking-wider w-16">Image</th>
                         <th className="text-left px-5 py-3 text-xs font-medium text-zinc-400 uppercase tracking-wider">Product</th>
                         <th className="text-left px-5 py-3 text-xs font-medium text-zinc-400 uppercase tracking-wider">Status</th>
                         <th className="text-left px-5 py-3 text-xs font-medium text-zinc-400 uppercase tracking-wider">Unit</th>
@@ -581,7 +671,37 @@ export function AdminDashboard() {
                     <tbody className="divide-y divide-zinc-800">
                       {inventory.map((item) => (
                         <tr key={item.id} className="hover:bg-zinc-800/30 transition-colors group">
-                          <td className="px-5 py-4">
+                          <td className="px-5 py-3">
+                            {editingItem?.id === item.id ? (
+                              <label className="relative cursor-pointer block w-12 h-12">
+                                <div className="w-12 h-12 rounded-lg border border-dashed border-amber-500/50 flex items-center justify-center overflow-hidden bg-zinc-800">
+                                  {uploadingItemImage ? (
+                                    <Loader2 className="animate-spin text-amber-400" size={16} />
+                                  ) : editingItem.image_url ? (
+                                    <img src={editingItem.image_url} alt="" className="w-full h-full object-cover" />
+                                  ) : (
+                                    <Camera className="text-zinc-500" size={16} />
+                                  )}
+                                </div>
+                                <input
+                                  type="file"
+                                  className="hidden"
+                                  accept="image/*"
+                                  onChange={(e) => e.target.files?.[0] && uploadInventoryImage(e.target.files[0], false)}
+                                  disabled={uploadingItemImage}
+                                />
+                              </label>
+                            ) : (
+                              <div className="w-12 h-12 rounded-lg overflow-hidden bg-zinc-800 flex items-center justify-center">
+                                {item.image_url ? (
+                                  <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
+                                ) : (
+                                  <Package className="text-zinc-600" size={20} />
+                                )}
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-5 py-3">
                             {editingItem?.id === item.id ? (
                               <input
                                 className="bg-zinc-800 border border-amber-500/50 rounded px-3 py-1.5 text-white w-full focus:outline-none"
@@ -593,7 +713,7 @@ export function AdminDashboard() {
                               <span className="font-medium text-white">{item.name}</span>
                             )}
                           </td>
-                          <td className="px-5 py-4">
+                          <td className="px-5 py-3">
                             {editingItem?.id === item.id ? (
                               <select
                                 className="bg-zinc-800 border border-amber-500/50 rounded px-3 py-1.5 text-white focus:outline-none"
@@ -614,7 +734,7 @@ export function AdminDashboard() {
                               </span>
                             )}
                           </td>
-                          <td className="px-5 py-4">
+                          <td className="px-5 py-3">
                             {editingItem?.id === item.id ? (
                               <input
                                 className="bg-zinc-800 border border-amber-500/50 rounded px-3 py-1.5 text-white w-24 focus:outline-none"
@@ -625,7 +745,7 @@ export function AdminDashboard() {
                               <span className="text-zinc-400">{item.unit_label || '—'}</span>
                             )}
                           </td>
-                          <td className="px-5 py-4 text-right">
+                          <td className="px-5 py-3 text-right">
                             {editingItem?.id === item.id ? (
                               <div className="flex items-center justify-end gap-2">
                                 <button 
