@@ -4,7 +4,7 @@ import { api } from '../api/client';
 import { 
   LayoutDashboard, Package, Image, LogOut, Plus, Trash2, X,
   Clock, Phone, Mail, Building, Loader2, User, Upload, Check,
-  AlertCircle, RefreshCw, Eye, EyeOff, ChevronDown, ImagePlus
+  AlertCircle, RefreshCw, Eye, EyeOff, ChevronDown, ImagePlus, Edit2
 } from 'lucide-react';
 
 // Status configuration
@@ -160,6 +160,7 @@ export function AdminDashboard() {
   
   // Forms
   const [newItem, setNewItem] = useState({ name: '', status: 'available_now', unit_label: 'per box' });
+  const [editingItem, setEditingItem] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [uploadCategory, setUploadCategory] = useState('gallery');
   const [mediaFilter, setMediaFilter] = useState('all');
@@ -246,6 +247,22 @@ export function AdminDashboard() {
     try {
       await api.deleteInventory(id, token);
       showNotification('Item removed');
+      loadData();
+    } catch (err) {
+      showNotification(err.message, 'error');
+    }
+  };
+
+  const saveEditItem = async () => {
+    if (!editingItem || !editingItem.name.trim()) return;
+    try {
+      await api.updateInventory(editingItem.id, {
+        name: editingItem.name,
+        status: editingItem.status,
+        unit_label: editingItem.unit_label
+      }, token);
+      showNotification('Item updated');
+      setEditingItem(null);
       loadData();
     } catch (err) {
       showNotification(err.message, 'error');
@@ -563,22 +580,87 @@ export function AdminDashboard() {
                     </thead>
                     <tbody className="divide-y divide-zinc-800">
                       {inventory.map((item) => (
-                        <tr key={item.id} className="hover:bg-zinc-800/30 transition-colors">
-                          <td className="px-5 py-4 font-medium text-white">{item.name}</td>
+                        <tr key={item.id} className="hover:bg-zinc-800/30 transition-colors group">
                           <td className="px-5 py-4">
-                            <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${
-                              item.status === 'available_now' ? 'bg-emerald-500/15 text-emerald-400' :
-                              item.status === 'next_container' ? 'bg-amber-500/15 text-amber-400' :
-                              'bg-red-500/15 text-red-400'
-                            }`}>
-                              {item.status?.replace(/_/g, ' ')}
-                            </span>
+                            {editingItem?.id === item.id ? (
+                              <input
+                                className="bg-zinc-800 border border-amber-500/50 rounded px-3 py-1.5 text-white w-full focus:outline-none"
+                                value={editingItem.name}
+                                onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })}
+                                autoFocus
+                              />
+                            ) : (
+                              <span className="font-medium text-white">{item.name}</span>
+                            )}
                           </td>
-                          <td className="px-5 py-4 text-zinc-400">{item.unit_label || '—'}</td>
+                          <td className="px-5 py-4">
+                            {editingItem?.id === item.id ? (
+                              <select
+                                className="bg-zinc-800 border border-amber-500/50 rounded px-3 py-1.5 text-white focus:outline-none"
+                                value={editingItem.status}
+                                onChange={(e) => setEditingItem({ ...editingItem, status: e.target.value })}
+                              >
+                                <option value="available_now">Available Now</option>
+                                <option value="next_container">Next Container</option>
+                                <option value="seasonal_limited">Limited / Seasonal</option>
+                              </select>
+                            ) : (
+                              <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${
+                                item.status === 'available_now' ? 'bg-emerald-500/15 text-emerald-400' :
+                                item.status === 'next_container' ? 'bg-amber-500/15 text-amber-400' :
+                                'bg-red-500/15 text-red-400'
+                              }`}>
+                                {item.status?.replace(/_/g, ' ')}
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-5 py-4">
+                            {editingItem?.id === item.id ? (
+                              <input
+                                className="bg-zinc-800 border border-amber-500/50 rounded px-3 py-1.5 text-white w-24 focus:outline-none"
+                                value={editingItem.unit_label || ''}
+                                onChange={(e) => setEditingItem({ ...editingItem, unit_label: e.target.value })}
+                              />
+                            ) : (
+                              <span className="text-zinc-400">{item.unit_label || '—'}</span>
+                            )}
+                          </td>
                           <td className="px-5 py-4 text-right">
-                            <button onClick={() => deleteInventoryItem(item.id)} className="text-red-400 hover:text-red-300 p-2">
-                              <Trash2 size={16} />
-                            </button>
+                            {editingItem?.id === item.id ? (
+                              <div className="flex items-center justify-end gap-2">
+                                <button 
+                                  onClick={saveEditItem}
+                                  className="text-emerald-400 hover:text-emerald-300 p-2 bg-emerald-500/10 rounded-lg"
+                                  title="Save"
+                                >
+                                  <Check size={16} />
+                                </button>
+                                <button 
+                                  onClick={() => setEditingItem(null)}
+                                  className="text-zinc-400 hover:text-zinc-300 p-2 bg-zinc-700/50 rounded-lg"
+                                  title="Cancel"
+                                >
+                                  <X size={16} />
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button 
+                                  onClick={() => setEditingItem({ ...item })}
+                                  className="text-amber-400 hover:text-amber-300 p-2"
+                                  title="Edit"
+                                >
+                                  <Edit2 size={16} />
+                                </button>
+                                <button 
+                                  onClick={() => deleteInventoryItem(item.id)}
+                                  className="text-red-400 hover:text-red-300 p-2"
+                                  title="Delete"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -649,6 +731,7 @@ export function AdminDashboard() {
                         />
                       </label>
                     </div>
+                    <p className="text-zinc-600 text-xs mt-4">Supported formats: JPG, PNG, WebP • Max 10MB per file</p>
                   </div>
                 </div>
 

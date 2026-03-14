@@ -299,8 +299,7 @@ class KNImportExportAPITester:
         test_payload = {
             "name": "Test Mangoes",
             "status": "available_now",
-            "unit_label": "per box",
-            "quality_note": "Fresh premium quality"
+            "unit_label": "per box"
         }
         
         success, response = self.run_test(
@@ -312,6 +311,56 @@ class KNImportExportAPITester:
         )
         if success and 'item' in response:
             print(f"   Created inventory item: {response['item']['name']}")
+            self.created_item_id = response['item']['id']
+            return True
+        return False
+
+    def test_admin_inventory_update(self):
+        """Test updating inventory item (inline editing PATCH endpoint)"""
+        if not self.token:
+            print("   ⚠️ Skipping - no admin token available")
+            return False
+        
+        if not hasattr(self, 'created_item_id'):
+            print("   ⚠️ Skipping - no created item to update")
+            return False
+            
+        test_payload = {
+            "name": "Updated Test Mangoes",
+            "status": "next_container",
+            "unit_label": "per kg"
+        }
+        
+        success, response = self.run_test(
+            "Admin Update Inventory (Inline Edit)",
+            "PATCH",
+            f"/admin/inventory/{self.created_item_id}",
+            200,
+            data=test_payload
+        )
+        if success and 'item' in response:
+            print(f"   Updated inventory item: {response['item']['name']}")
+            return True
+        return False
+
+    def test_admin_inventory_delete(self):
+        """Test deleting inventory item"""
+        if not self.token:
+            print("   ⚠️ Skipping - no admin token available")
+            return False
+        
+        if not hasattr(self, 'created_item_id'):
+            print("   ⚠️ Skipping - no created item to delete")
+            return False
+            
+        success, response = self.run_test(
+            "Admin Delete Inventory",
+            "DELETE",
+            f"/admin/inventory/{self.created_item_id}",
+            200
+        )
+        if success and response.get('deleted') == True:
+            print(f"   Successfully deleted inventory item")
             return True
         return False
 
@@ -351,7 +400,9 @@ def main():
     print("-" * 30)
     admin_results = {
         'admin_inventory': tester.test_admin_inventory_protected(),
-        'admin_inventory_create': tester.test_admin_inventory_create()
+        'admin_inventory_create': tester.test_admin_inventory_create(),
+        'admin_inventory_update': tester.test_admin_inventory_update(),
+        'admin_inventory_delete': tester.test_admin_inventory_delete()
     }
     
     # Combine all results
