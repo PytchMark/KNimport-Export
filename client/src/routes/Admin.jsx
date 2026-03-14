@@ -4,7 +4,8 @@ import { api } from '../api/client';
 import { 
   LayoutDashboard, Package, Image, LogOut, Plus, Trash2, X,
   Clock, Phone, Mail, Building, Loader2, User, Upload, Check,
-  AlertCircle, RefreshCw, Eye, EyeOff, ChevronDown, ImagePlus, Edit2, Camera
+  AlertCircle, RefreshCw, Eye, EyeOff, ChevronDown, ImagePlus, Edit2, Camera,
+  FileSpreadsheet, Download, HelpCircle
 } from 'lucide-react';
 
 // Logo URL
@@ -171,6 +172,8 @@ export function AdminDashboard() {
   const [uploadCategory, setUploadCategory] = useState('gallery');
   const [mediaFilter, setMediaFilter] = useState('all');
   const [dragOver, setDragOver] = useState(false);
+  const [bulkImporting, setBulkImporting] = useState(false);
+  const [showBulkImport, setShowBulkImport] = useState(false);
   
   const token = localStorage.getItem('admin_token');
 
@@ -317,6 +320,123 @@ export function AdminDashboard() {
     } finally {
       setUploadingItemImage(false);
     }
+  };
+
+  // Bulk import from CSV
+  const handleBulkImport = async (file) => {
+    if (!file) return;
+    setBulkImporting(true);
+    
+    try {
+      const text = await file.text();
+      const lines = text.split('\n').filter(line => line.trim());
+      
+      if (lines.length < 2) {
+        throw new Error('CSV must have a header row and at least one data row');
+      }
+      
+      // Parse header
+      const header = lines[0].toLowerCase().split(',').map(h => h.trim().replace(/"/g, ''));
+      const nameIdx = header.findIndex(h => h === 'name' || h === 'product' || h === 'product name');
+      const statusIdx = header.findIndex(h => h === 'status' || h === 'availability');
+      const unitIdx = header.findIndex(h => h === 'unit' || h === 'unit_label' || h === 'unit label');
+      const imageIdx = header.findIndex(h => h === 'image' || h === 'image_url' || h === 'image url' || h === 'photo');
+      
+      if (nameIdx === -1) {
+        throw new Error('CSV must have a "name" or "product" column');
+      }
+      
+      // Parse data rows
+      const items = [];
+      for (let i = 1; i < lines.length; i++) {
+        const values = parseCSVLine(lines[i]);
+        const name = values[nameIdx]?.trim();
+        if (!name) continue;
+        
+        let status = values[statusIdx]?.trim().toLowerCase() || 'available_now';
+        // Normalize status values
+        if (status.includes('available') || status === 'in stock' || status === 'yes') {
+          status = 'available_now';
+        } else if (status.includes('next') || status.includes('coming') || status === 'soon') {
+          status = 'next_container';
+        } else if (status.includes('limited') || status.includes('seasonal') || status === 'low') {
+          status = 'seasonal_limited';
+        } else {
+          status = 'available_now';
+        }
+        
+        items.push({
+          name,
+          status,
+          unit_label: values[unitIdx]?.trim() || 'per box',
+          image_url: values[imageIdx]?.trim() || null
+        });
+      }
+      
+      if (items.length === 0) {
+        throw new Error('No valid items found in CSV');
+      }
+      
+      // Import items
+      let successCount = 0;
+      let errorCount = 0;
+      
+      for (const item of items) {
+        try {
+          await api.createInventory(item, token);
+          successCount++;
+        } catch {
+          errorCount++;
+        }
+      }
+      
+      showNotification(`Imported ${successCount} items${errorCount > 0 ? `, ${errorCount} failed` : ''}`);
+      setShowBulkImport(false);
+      loadData();
+    } catch (err) {
+      showNotification(err.message, 'error');
+    } finally {
+      setBulkImporting(false);
+    }
+  };
+
+  // Parse CSV line handling quoted values
+  const parseCSVLine = (line) => {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        result.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    result.push(current.trim());
+    return result;
+  };
+
+  // Download sample CSV
+  const downloadSampleCSV = () => {
+    const csv = `name,status,unit,image_url
+Fresh Mangoes,available_now,per box,
+Scotch Bonnet Peppers,available_now,per lb,
+Callaloo,next_container,per bunch,
+Breadfruit,seasonal_limited,each,
+Ackee,available_now,per can,`;
+    
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'inventory_template.csv';
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const handleFileUpload = async (files) => {
@@ -575,10 +695,116 @@ export function AdminDashboard() {
             {/* ========== INVENTORY TAB ========== */}
             {activeTab === 'inventory' && (
               <div className="space-y-6">
-                <div>
-                  <h1 className="text-2xl font-bold text-white">Inventory Manager</h1>
-                  <p className="text-zinc-500 text-sm mt-1">Manage your product catalog</p>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h1 className="text-2xl font-bold text-white">Inventory Manager</h1>
+                    <p className="text-zinc-500 text-sm mt-1">Manage your product catalog</p>
+                  </div>
+                  <button
+                    onClick={() => setShowBulkImport(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg text-sm font-medium transition-colors"
+                  >
+                    <FileSpreadsheet size={18} />
+                    Bulk Import CSV
+                  </button>
                 </div>
+
+                {/* Bulk Import Modal */}
+                <AnimatePresence>
+                  {showBulkImport && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-6"
+                      onClick={() => !bulkImporting && setShowBulkImport(false)}
+                    >
+                      <motion.div
+                        initial={{ scale: 0.95 }}
+                        animate={{ scale: 1 }}
+                        exit={{ scale: 0.95 }}
+                        className="w-full max-w-lg bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="p-5 border-b border-zinc-800 flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                              <FileSpreadsheet className="text-amber-400" size={20} />
+                            </div>
+                            <div>
+                              <h2 className="font-semibold text-white">Bulk Import</h2>
+                              <p className="text-xs text-zinc-500">Upload a CSV file to import multiple products</p>
+                            </div>
+                          </div>
+                          <button 
+                            onClick={() => !bulkImporting && setShowBulkImport(false)} 
+                            className="p-2 hover:bg-zinc-800 rounded-lg text-zinc-400"
+                            disabled={bulkImporting}
+                          >
+                            <X size={20} />
+                          </button>
+                        </div>
+                        
+                        <div className="p-5 space-y-4">
+                          {/* Instructions */}
+                          <div className="bg-zinc-800/50 rounded-xl p-4">
+                            <div className="flex items-start gap-3">
+                              <HelpCircle className="text-amber-400 flex-shrink-0 mt-0.5" size={18} />
+                              <div className="text-sm">
+                                <p className="text-white font-medium mb-2">CSV Format</p>
+                                <p className="text-zinc-400 text-xs leading-relaxed">
+                                  Your CSV should have columns for: <span className="text-amber-400">name</span> (required), 
+                                  <span className="text-zinc-300"> status</span>, <span className="text-zinc-300">unit</span>, 
+                                  and <span className="text-zinc-300">image_url</span> (optional)
+                                </p>
+                                <p className="text-zinc-500 text-xs mt-2">
+                                  Status values: available_now, next_container, seasonal_limited
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Download Template */}
+                          <button
+                            onClick={downloadSampleCSV}
+                            className="w-full flex items-center justify-center gap-2 px-4 py-3 border border-zinc-700 hover:border-zinc-600 rounded-xl text-zinc-300 hover:text-white transition-colors"
+                          >
+                            <Download size={18} />
+                            Download Sample CSV Template
+                          </button>
+                          
+                          {/* Upload Area */}
+                          <label className={`block w-full border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
+                            bulkImporting 
+                              ? 'border-amber-500/50 bg-amber-500/5' 
+                              : 'border-zinc-700 hover:border-zinc-500 hover:bg-zinc-800/30'
+                          }`}>
+                            {bulkImporting ? (
+                              <div className="flex flex-col items-center">
+                                <Loader2 className="animate-spin text-amber-400 mb-3" size={32} />
+                                <p className="text-white font-medium">Importing products...</p>
+                                <p className="text-zinc-500 text-sm mt-1">Please wait</p>
+                              </div>
+                            ) : (
+                              <div className="flex flex-col items-center">
+                                <Upload className="text-zinc-500 mb-3" size={32} />
+                                <p className="text-white font-medium">Click to upload CSV</p>
+                                <p className="text-zinc-500 text-sm mt-1">or drag and drop your file here</p>
+                              </div>
+                            )}
+                            <input
+                              type="file"
+                              className="hidden"
+                              accept=".csv,text/csv"
+                              onChange={(e) => e.target.files?.[0] && handleBulkImport(e.target.files[0])}
+                              disabled={bulkImporting}
+                            />
+                          </label>
+                        </div>
+                      </motion.div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 {/* Add Form */}
                 <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5">

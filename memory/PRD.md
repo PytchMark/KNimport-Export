@@ -43,6 +43,14 @@ Caribbean wholesale produce distribution platform with admin portal for inventor
 - Logo displayed on admin login page
 - Logo displayed in admin sidebar
 
+### Bulk Import Feature ✅
+- CSV upload to import multiple products at once
+- Download sample CSV template
+- Supports columns: name (required), status, unit, image_url
+- Auto-normalizes status values (e.g., "in stock" → "available_now")
+- Progress indicator during import
+- Shows success/failure count
+
 ### Cloudinary to Supabase Migration ✅
 - Removed Cloudinary dependency
 - Supabase Storage integration for uploads
